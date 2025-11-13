@@ -9,6 +9,8 @@ import { useToast } from '@/hooks/use-toast';
 
 interface ToolbarProps {
   onRefresh: () => void;
+  onRun?: () => void;
+  onToggleTerminal?: () => void;
 }
 
 const BOILERPLATES = [
@@ -17,7 +19,7 @@ const BOILERPLATES = [
   { name: 'Python Flask', url: 'https://github.com/pallets/flask/archive/refs/heads/main.zip' },
 ];
 
-export function Toolbar({ onRefresh }: ToolbarProps) {
+export function Toolbar({ onRefresh, onRun, onToggleTerminal }: ToolbarProps) {
   const [showImportDialog, setShowImportDialog] = useState(false);
   const [zipUrl, setZipUrl] = useState('');
   const [isLoading, setIsLoading] = useState(false);

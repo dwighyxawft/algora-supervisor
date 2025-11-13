@@ -60,6 +60,7 @@ export default {
         "editor-background": "hsl(var(--editor-background))",
         "explorer-background": "hsl(var(--explorer-background))",
         "toolbar-background": "hsl(var(--toolbar-background))",
+        "terminal-background": "hsl(var(--terminal-background))",
       },
       borderRadius: {
         lg: "var(--radius)",

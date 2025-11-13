@@ -3,6 +3,8 @@ import { initBrowserFs, readDirRecursive, getFs, FileNode } from '@/lib/browserF
 import { FileExplorer } from '@/components/FileExplorer';
 import { CodeEditor } from '@/components/CodeEditor';
 import { Toolbar } from '@/components/Toolbar';
+import { Terminal } from '@/components/Terminal';
+import { runCode } from '@/lib/codeRunner';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2 } from 'lucide-react';
 
@@ -10,6 +12,8 @@ const Index = () => {
   const [isReady, setIsReady] = useState(false);
   const [files, setFiles] = useState<FileNode[]>([]);
   const [selectedFile, setSelectedFile] = useState<string | null>(null);
+  const [showTerminal, setShowTerminal] = useState(false);
+  const [isRunning, setIsRunning] = useState(false);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -134,6 +138,26 @@ const Index = () => {
     }
   };
 
+  const handleRun = async () => {
+    if (!selectedFile) {
+      toast({
+        title: 'No file selected',
+        description: 'Please select a file to run',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    setIsRunning(true);
+    setShowTerminal(true);
+    
+    try {
+      await runCode(selectedFile);
+    } finally {
+      setIsRunning(false);
+    }
+  };
+
   if (!isReady) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-background">
@@ -147,9 +171,13 @@ const Index = () => {
 
   return (
     <div className="flex flex-col h-screen bg-background overflow-hidden">
-      <Toolbar onRefresh={refreshFiles} />
+      <Toolbar 
+        onRefresh={refreshFiles}
+        onRun={handleRun}
+        onToggleTerminal={() => setShowTerminal(prev => !prev)}
+      />
       <div className="flex flex-1 overflow-hidden">
-        <div className="w-64 flex-shrink-0">
+        <div className="w-64 flex-shrink-0 border-r border-border">
           <FileExplorer
             files={files}
             onFileSelect={setSelectedFile}
@@ -159,8 +187,19 @@ const Index = () => {
             selectedFile={selectedFile}
           />
         </div>
-        <div className="flex-1">
-          <CodeEditor selectedFile={selectedFile} onClose={() => setSelectedFile(null)} />
+        <div className="flex-1 flex flex-col overflow-hidden">
+          <div className={showTerminal ? 'h-2/3 border-b border-border' : 'flex-1'}>
+            <CodeEditor selectedFile={selectedFile} onClose={() => setSelectedFile(null)} />
+          </div>
+          {showTerminal && (
+            <div className="h-1/3">
+              <Terminal
+                onClose={() => setShowTerminal(false)}
+                onRun={handleRun}
+                isRunning={isRunning}
+              />
+            </div>
+          )}
         </div>
       </div>
     </div>
