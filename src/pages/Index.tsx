@@ -4,6 +4,7 @@ import { FileExplorer } from '@/components/FileExplorer';
 import { CodeEditor } from '@/components/CodeEditor';
 import { Toolbar } from '@/components/Toolbar';
 import { Terminal } from '@/components/Terminal';
+import { FileSearch } from '@/components/FileSearch';
 import { runCode } from '@/lib/codeRunner';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2 } from 'lucide-react';
@@ -11,8 +12,11 @@ import { Loader2 } from 'lucide-react';
 const Index = () => {
   const [isReady, setIsReady] = useState(false);
   const [files, setFiles] = useState<FileNode[]>([]);
+  const [openFiles, setOpenFiles] = useState<string[]>([]);
   const [selectedFile, setSelectedFile] = useState<string | null>(null);
+  const [unsavedFiles, setUnsavedFiles] = useState<Set<string>>(new Set());
   const [showTerminal, setShowTerminal] = useState(false);
+  const [showSearch, setShowSearch] = useState(false);
   const [isRunning, setIsRunning] = useState(false);
   const { toast } = useToast();
 
@@ -40,6 +44,40 @@ const Index = () => {
     }
   };
 
+  const handleFileSelect = (path: string) => {
+    if (!openFiles.includes(path)) {
+      setOpenFiles([...openFiles, path]);
+    }
+    setSelectedFile(path);
+  };
+
+  const handleFileClose = (path: string) => {
+    const newOpenFiles = openFiles.filter(f => f !== path);
+    setOpenFiles(newOpenFiles);
+    
+    const newUnsavedFiles = new Set(unsavedFiles);
+    newUnsavedFiles.delete(path);
+    setUnsavedFiles(newUnsavedFiles);
+
+    if (selectedFile === path) {
+      if (newOpenFiles.length > 0) {
+        setSelectedFile(newOpenFiles[newOpenFiles.length - 1]);
+      } else {
+        setSelectedFile(null);
+      }
+    }
+  };
+
+  const handleUnsavedChange = (path: string, hasChanges: boolean) => {
+    const newUnsavedFiles = new Set(unsavedFiles);
+    if (hasChanges) {
+      newUnsavedFiles.add(path);
+    } else {
+      newUnsavedFiles.delete(path);
+    }
+    setUnsavedFiles(newUnsavedFiles);
+  };
+
   const handleFileCreate = (parentPath: string, name: string, isFolder: boolean) => {
     const fs = getFs();
     if (fs) {
@@ -49,7 +87,7 @@ const Index = () => {
           fs.mkdirSync(fullPath);
         } else {
           fs.writeFileSync(fullPath, '', 'utf8');
-          setSelectedFile(fullPath);
+          handleFileSelect(fullPath);
         }
         refreshFiles();
         toast({
@@ -73,7 +111,6 @@ const Index = () => {
       try {
         const stat = fs.statSync(path);
         if (stat.isDirectory()) {
-          // Recursive delete
           const deleteDir = (dirPath: string) => {
             const items = fs.readdirSync(dirPath);
             items.forEach((item: string) => {
@@ -92,9 +129,10 @@ const Index = () => {
           fs.unlinkSync(path);
         }
         
-        if (selectedFile === path) {
-          setSelectedFile(null);
+        if (openFiles.includes(path)) {
+          handleFileClose(path);
         }
+        
         refreshFiles();
         toast({
           title: 'Deleted',
@@ -119,9 +157,22 @@ const Index = () => {
         const newPath = `${dir}/${newName}`;
         fs.renameSync(oldPath, newPath);
         
+        if (openFiles.includes(oldPath)) {
+          const newOpenFiles = openFiles.map(f => f === oldPath ? newPath : f);
+          setOpenFiles(newOpenFiles);
+        }
+        
         if (selectedFile === oldPath) {
           setSelectedFile(newPath);
         }
+
+        if (unsavedFiles.has(oldPath)) {
+          const newUnsavedFiles = new Set(unsavedFiles);
+          newUnsavedFiles.delete(oldPath);
+          newUnsavedFiles.add(newPath);
+          setUnsavedFiles(newUnsavedFiles);
+        }
+        
         refreshFiles();
         toast({
           title: 'Renamed',
@@ -175,12 +226,21 @@ const Index = () => {
         onRefresh={refreshFiles}
         onRun={handleRun}
         onToggleTerminal={() => setShowTerminal(prev => !prev)}
+        onToggleSearch={() => setShowSearch(prev => !prev)}
       />
       <div className="flex flex-1 overflow-hidden">
+        {showSearch && (
+          <div className="w-80 flex-shrink-0">
+            <FileSearch
+              onClose={() => setShowSearch(false)}
+              onFileSelect={handleFileSelect}
+            />
+          </div>
+        )}
         <div className="w-64 flex-shrink-0 border-r border-border">
           <FileExplorer
             files={files}
-            onFileSelect={setSelectedFile}
+            onFileSelect={handleFileSelect}
             onFileCreate={handleFileCreate}
             onFileDelete={handleFileDelete}
             onFileRename={handleFileRename}
@@ -189,7 +249,14 @@ const Index = () => {
         </div>
         <div className="flex-1 flex flex-col overflow-hidden">
           <div className={showTerminal ? 'h-2/3 border-b border-border' : 'flex-1'}>
-            <CodeEditor selectedFile={selectedFile} onClose={() => setSelectedFile(null)} />
+            <CodeEditor
+              openFiles={openFiles}
+              selectedFile={selectedFile}
+              onFileSelect={handleFileSelect}
+              onFileClose={handleFileClose}
+              unsavedFiles={unsavedFiles}
+              onUnsavedChange={handleUnsavedChange}
+            />
           </div>
           {showTerminal && (
             <div className="h-1/3">

@@ -1,19 +1,35 @@
-import Editor from '@monaco-editor/react';
-import { useEffect, useState } from 'react';
+import Editor, { OnMount } from '@monaco-editor/react';
+import { useEffect, useState, useRef } from 'react';
 import { getFs } from '@/lib/browserFs';
-import { Save, X } from 'lucide-react';
+import { Save, Wand2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
+import { formatCode } from '@/lib/formatter';
+import { configureLinting, enableLinting } from '@/lib/linter';
+import { EditorTabs } from '@/components/EditorTabs';
 
 interface CodeEditorProps {
+  openFiles: string[];
   selectedFile: string | null;
-  onClose: () => void;
+  onFileSelect: (path: string) => void;
+  onFileClose: (path: string) => void;
+  unsavedFiles: Set<string>;
+  onUnsavedChange: (path: string, hasChanges: boolean) => void;
 }
 
-export function CodeEditor({ selectedFile, onClose }: CodeEditorProps) {
+export function CodeEditor({ 
+  openFiles, 
+  selectedFile, 
+  onFileSelect, 
+  onFileClose,
+  unsavedFiles,
+  onUnsavedChange 
+}: CodeEditorProps) {
   const [content, setContent] = useState('');
   const [language, setLanguage] = useState('javascript');
-  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+  const [isFormatting, setIsFormatting] = useState(false);
+  const editorRef = useRef<any>(null);
+  const monacoRef = useRef<any>(null);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -23,7 +39,7 @@ export function CodeEditor({ selectedFile, onClose }: CodeEditorProps) {
         try {
           const fileContent = fs.readFileSync(selectedFile, 'utf8');
           setContent(fileContent);
-          setHasUnsavedChanges(false);
+          onUnsavedChange(selectedFile, false);
           
           // Determine language from file extension
           const ext = selectedFile.split('.').pop()?.toLowerCase();
@@ -64,7 +80,7 @@ export function CodeEditor({ selectedFile, onClose }: CodeEditorProps) {
       if (fs) {
         try {
           fs.writeFileSync(selectedFile, content, 'utf8');
-          setHasUnsavedChanges(false);
+          onUnsavedChange(selectedFile, false);
           toast({
             title: 'Saved',
             description: `${selectedFile.split('/').pop()} saved successfully`,
@@ -83,20 +99,68 @@ export function CodeEditor({ selectedFile, onClose }: CodeEditorProps) {
 
   const handleChange = (value: string | undefined) => {
     setContent(value || '');
-    setHasUnsavedChanges(true);
+    if (selectedFile) {
+      onUnsavedChange(selectedFile, true);
+    }
+  };
+
+  const handleFormat = async () => {
+    if (!selectedFile) return;
+    
+    setIsFormatting(true);
+    try {
+      const formatted = await formatCode(content, language);
+      setContent(formatted);
+      if (editorRef.current) {
+        editorRef.current.setValue(formatted);
+      }
+      toast({
+        title: 'Formatted',
+        description: 'Code formatted successfully',
+      });
+    } catch (error) {
+      console.error('Format error:', error);
+      toast({
+        title: 'Format failed',
+        description: 'Failed to format code',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsFormatting(false);
+    }
   };
 
   // Auto-save after 2 seconds of inactivity
   useEffect(() => {
-    if (hasUnsavedChanges) {
+    if (selectedFile && unsavedFiles.has(selectedFile)) {
       const timer = setTimeout(() => {
         handleSave();
       }, 2000);
       return () => clearTimeout(timer);
     }
-  }, [content, hasUnsavedChanges]);
+  }, [content, selectedFile]);
 
-  if (!selectedFile) {
+  const handleEditorDidMount: OnMount = (editor, monaco) => {
+    editorRef.current = editor;
+    monacoRef.current = monaco;
+    
+    // Configure linting
+    configureLinting(monaco);
+    enableLinting(editor, monaco);
+
+    // Auto-format on save (Ctrl/Cmd + S)
+    editor.addAction({
+      id: 'format-and-save',
+      label: 'Format and Save',
+      keybindings: [monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyS],
+      run: async () => {
+        await handleFormat();
+        handleSave();
+      },
+    });
+  };
+
+  if (openFiles.length === 0) {
     return (
       <div className="flex items-center justify-center h-full bg-editor-background text-muted-foreground">
         <div className="text-center">
@@ -109,48 +173,69 @@ export function CodeEditor({ selectedFile, onClose }: CodeEditorProps) {
 
   return (
     <div className="flex flex-col h-full bg-editor-background">
-      <div className="flex items-center justify-between px-4 py-2 border-b border-border bg-toolbar-background">
-        <div className="flex items-center gap-2">
-          <span className="text-sm">{selectedFile.split('/').pop()}</span>
-          {hasUnsavedChanges && <span className="text-xs text-accent">●</span>}
-        </div>
-        <div className="flex gap-2">
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-7 w-7"
-            onClick={handleSave}
-            title="Save (Auto-saves after 2s)"
-          >
-            <Save className="h-4 w-4" />
-          </Button>
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-7 w-7"
-            onClick={onClose}
-          >
-            <X className="h-4 w-4" />
-          </Button>
-        </div>
-      </div>
-      <div className="flex-1">
-        <Editor
-          height="100%"
-          language={language}
-          value={content}
-          onChange={handleChange}
-          theme="vs-dark"
-          options={{
-            minimap: { enabled: false },
-            fontSize: 14,
-            lineNumbers: 'on',
-            scrollBeyondLastLine: false,
-            automaticLayout: true,
-            tabSize: 2,
-          }}
-        />
-      </div>
+      <EditorTabs
+        openFiles={openFiles}
+        selectedFile={selectedFile}
+        onFileSelect={onFileSelect}
+        onFileClose={onFileClose}
+        unsavedFiles={unsavedFiles}
+      />
+      
+      {selectedFile && (
+        <>
+          <div className="flex items-center justify-between px-4 py-2 border-b border-border bg-toolbar-background">
+            <div className="flex items-center gap-2">
+              <span className="text-sm">{selectedFile.split('/').pop()}</span>
+              {unsavedFiles.has(selectedFile) && <span className="text-xs text-accent">●</span>}
+            </div>
+            <div className="flex gap-2">
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-7 px-2 gap-1"
+                onClick={handleFormat}
+                disabled={isFormatting}
+                title="Format Code (Ctrl/Cmd+S formats and saves)"
+              >
+                <Wand2 className="h-3.5 w-3.5" />
+                Format
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-7 px-2 gap-1"
+                onClick={handleSave}
+                title="Save (Auto-saves after 2s)"
+              >
+                <Save className="h-3.5 w-3.5" />
+                Save
+              </Button>
+            </div>
+          </div>
+
+          <div className="flex-1">
+            <Editor
+              height="100%"
+              language={language}
+              value={content}
+              onChange={handleChange}
+              onMount={handleEditorDidMount}
+              theme="vs-dark"
+              options={{
+                minimap: { enabled: true },
+                fontSize: 14,
+                lineNumbers: 'on',
+                renderWhitespace: 'selection',
+                scrollBeyondLastLine: false,
+                automaticLayout: true,
+                formatOnPaste: true,
+                formatOnType: true,
+                tabSize: 2,
+              }}
+            />
+          </div>
+        </>
+      )}
     </div>
   );
 }
