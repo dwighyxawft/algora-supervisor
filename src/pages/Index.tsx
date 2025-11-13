@@ -80,28 +80,53 @@ const Index = () => {
 
   const handleFileCreate = (parentPath: string, name: string, isFolder: boolean) => {
     const fs = getFs();
-    if (fs) {
-      try {
-        const fullPath = `${parentPath}/${name}`.replace('//', '/');
-        if (isFolder) {
-          fs.mkdirSync(fullPath);
-        } else {
-          fs.writeFileSync(fullPath, '', 'utf8');
-          handleFileSelect(fullPath);
+    if (!fs) {
+      toast({
+        title: 'Error',
+        description: 'File system not initialized',
+        variant: 'destructive',
+      });
+      return;
+    }
+    
+    try {
+      const fullPath = `${parentPath}/${name}`.replace('//', '/');
+      
+      if (isFolder) {
+        fs.mkdirSync(fullPath);
+      } else {
+        // Ensure parent directory exists
+        const parentDir = fullPath.substring(0, fullPath.lastIndexOf('/'));
+        if (parentDir && !fs.existsSync(parentDir)) {
+          // Create parent directories recursively
+          const parts = parentDir.split('/').filter(p => p);
+          let currentPath = '';
+          for (const part of parts) {
+            currentPath += '/' + part;
+            if (!fs.existsSync(currentPath)) {
+              fs.mkdirSync(currentPath);
+            }
+          }
         }
-        refreshFiles();
-        toast({
-          title: 'Created',
-          description: `${isFolder ? 'Folder' : 'File'} "${name}" created`,
-        });
-      } catch (e) {
-        console.error('Error creating:', e);
-        toast({
-          title: 'Error',
-          description: 'Failed to create item',
-          variant: 'destructive',
-        });
+        
+        fs.writeFileSync(fullPath, '', 'utf8');
+        // Add to open files and select it
+        setOpenFiles(prev => [...prev, fullPath]);
+        setSelectedFile(fullPath);
       }
+      
+      refreshFiles();
+      toast({
+        title: 'Created',
+        description: `${isFolder ? 'Folder' : 'File'} "${name}" created`,
+      });
+    } catch (e: any) {
+      console.error('Error creating:', e);
+      toast({
+        title: 'Error',
+        description: `Failed to create: ${e.message || 'Unknown error'}`,
+        variant: 'destructive',
+      });
     }
   };
 
