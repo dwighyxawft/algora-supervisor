@@ -1,11 +1,11 @@
 import Editor, { OnMount } from '@monaco-editor/react';
 import { useEffect, useState, useRef } from 'react';
-import { getFs } from '@/lib/browserFs';
+import { getFs, readDirRecursive } from '@/lib/browserFs';
 import { Save, Wand2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { formatCode } from '@/lib/formatter';
-import { configureLinting, enableLinting } from '@/lib/linter';
+import { configureLinting, enableLinting, configureImportIntellisense } from '@/lib/linter';
 import { EditorTabs } from '@/components/EditorTabs';
 
 interface CodeEditorProps {
@@ -147,6 +147,13 @@ export function CodeEditor({
     // Configure linting
     configureLinting(monaco);
     enableLinting(editor, monaco);
+
+    // Configure import intellisense
+    const fs = getFs();
+    if (fs) {
+      const files = readDirRecursive(fs, '/workspace');
+      configureImportIntellisense(monaco, files);
+    }
 
     // Auto-format on save (Ctrl/Cmd + S)
     editor.addAction({
