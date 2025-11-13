@@ -3,7 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Download, Upload, Link2, FileCode, Loader2 } from 'lucide-react';
+import { Download, Upload, Link2, FileCode, Loader2, Play, Search } from 'lucide-react';
 import { importZipFromUrl, exportWorkspaceAsZip, uploadFilesToWorkspace } from '@/lib/zipHelpers';
 import { useToast } from '@/hooks/use-toast';
 
@@ -11,6 +11,7 @@ interface ToolbarProps {
   onRefresh: () => void;
   onRun?: () => void;
   onToggleTerminal?: () => void;
+  onToggleSearch?: () => void;
 }
 
 const BOILERPLATES = [
@@ -19,7 +20,7 @@ const BOILERPLATES = [
   { name: 'Python Flask', url: 'https://github.com/pallets/flask/archive/refs/heads/main.zip' },
 ];
 
-export function Toolbar({ onRefresh, onRun, onToggleTerminal }: ToolbarProps) {
+export function Toolbar({ onRefresh, onRun, onToggleTerminal, onToggleSearch }: ToolbarProps) {
   const [showImportDialog, setShowImportDialog] = useState(false);
   const [zipUrl, setZipUrl] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -152,6 +153,17 @@ export function Toolbar({ onRefresh, onRun, onToggleTerminal }: ToolbarProps) {
         </Select>
 
         <div className="flex-1" />
+
+        {onToggleSearch && (
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={onToggleSearch}
+            title="Search in files"
+          >
+            <Search className="h-4 w-4" />
+          </Button>
+        )}
 
         <Button
           variant="ghost"
