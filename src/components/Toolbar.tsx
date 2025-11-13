@@ -14,11 +14,8 @@ interface ToolbarProps {
   onToggleSearch?: () => void;
 }
 
-const BOILERPLATES = [
-  { name: 'Node.js Express', url: 'https://github.com/expressjs/express/archive/refs/heads/master.zip' },
-  { name: 'React Vite', url: 'https://github.com/vitejs/vite/archive/refs/heads/main.zip' },
-  { name: 'Python Flask', url: 'https://github.com/pallets/flask/archive/refs/heads/main.zip' },
-];
+// Boilerplates will be loaded from backend
+const BOILERPLATES: { name: string; url: string }[] = [];
 
 export function Toolbar({ onRefresh, onRun, onToggleTerminal, onToggleSearch }: ToolbarProps) {
   const [showImportDialog, setShowImportDialog] = useState(false);
@@ -91,12 +88,20 @@ export function Toolbar({ onRefresh, onRun, onToggleTerminal, onToggleSearch }: 
 
     setIsLoading(true);
     try {
-      const uploaded = await uploadFilesToWorkspace(files);
+      const result = await uploadFilesToWorkspace(files);
       onRefresh();
-      toast({
-        title: 'Upload successful',
-        description: `Uploaded ${uploaded} file${uploaded !== 1 ? 's' : ''}`,
-      });
+      
+      if (result.imported && result.imported > 0) {
+        toast({
+          title: 'Project imported',
+          description: `Imported ${result.imported} files${result.skipped ? ` • Skipped ${result.skipped}` : ''}`,
+        });
+      } else {
+        toast({
+          title: 'Upload successful',
+          description: `Uploaded ${result.uploaded} file${result.uploaded !== 1 ? 's' : ''}`,
+        });
+      }
     } catch (error) {
       console.error('Upload error:', error);
       toast({
@@ -136,21 +141,23 @@ export function Toolbar({ onRefresh, onRun, onToggleTerminal, onToggleSearch }: 
   return (
     <>
       <div className="h-12 bg-toolbar-background border-b border-border flex items-center gap-2 px-4">
-        <Select onValueChange={handleBoilerplateSelect} disabled={isLoading}>
-          <SelectTrigger className="w-48 h-8">
-            <SelectValue placeholder="Load boilerplate..." />
-          </SelectTrigger>
-          <SelectContent>
-            {BOILERPLATES.map((bp) => (
-              <SelectItem key={bp.url} value={bp.url}>
-                <div className="flex items-center gap-2">
-                  <FileCode className="h-4 w-4" />
-                  {bp.name}
-                </div>
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        {BOILERPLATES.length > 0 && (
+          <Select onValueChange={handleBoilerplateSelect} disabled={isLoading}>
+            <SelectTrigger className="w-48 h-8">
+              <SelectValue placeholder="Load boilerplate..." />
+            </SelectTrigger>
+            <SelectContent>
+              {BOILERPLATES.map((bp) => (
+                <SelectItem key={bp.url} value={bp.url}>
+                  <div className="flex items-center gap-2">
+                    <FileCode className="h-4 w-4" />
+                    {bp.name}
+                  </div>
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        )}
 
         <div className="flex-1" />
 
@@ -170,7 +177,7 @@ export function Toolbar({ onRefresh, onRun, onToggleTerminal, onToggleSearch }: 
           size="sm"
           onClick={() => fileInputRef.current?.click()}
           disabled={isLoading}
-          title="Upload files"
+          title="Upload files or ZIP project"
         >
           <Upload className="h-4 w-4" />
         </Button>
@@ -180,7 +187,7 @@ export function Toolbar({ onRefresh, onRun, onToggleTerminal, onToggleSearch }: 
           size="sm"
           onClick={() => setShowImportDialog(true)}
           disabled={isLoading}
-          title="Import from ZIP URL"
+          title="Import project from ZIP URL"
         >
           <Link2 className="h-4 w-4" />
         </Button>
@@ -199,6 +206,7 @@ export function Toolbar({ onRefresh, onRun, onToggleTerminal, onToggleSearch }: 
           ref={fileInputRef}
           type="file"
           multiple
+          accept=".zip,*"
           onChange={handleFileUpload}
           className="hidden"
         />
@@ -207,9 +215,9 @@ export function Toolbar({ onRefresh, onRun, onToggleTerminal, onToggleSearch }: 
       <Dialog open={showImportDialog} onOpenChange={setShowImportDialog}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Import from ZIP URL</DialogTitle>
+            <DialogTitle>Import Project from ZIP URL</DialogTitle>
             <DialogDescription>
-              Paste a URL to a ZIP file. Files will be imported to /workspace.
+              Paste a direct URL to a ZIP file to import the project.
               <br />
               <span className="text-xs text-muted-foreground">
                 Note: node_modules, .git, dist folders will be skipped.
