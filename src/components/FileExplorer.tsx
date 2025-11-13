@@ -185,6 +185,7 @@ export function FileExplorer({
             onClick={() => {
               setCreatingIn({ path: '/workspace', isFolder: false });
               setNewName('');
+              setExpandedFolders(new Set(expandedFolders).add('/workspace'));
             }}
             title="New File"
           >
@@ -197,6 +198,7 @@ export function FileExplorer({
             onClick={() => {
               setCreatingIn({ path: '/workspace', isFolder: true });
               setNewName('');
+              setExpandedFolders(new Set(expandedFolders).add('/workspace'));
             }}
             title="New Folder"
           >
@@ -205,6 +207,27 @@ export function FileExplorer({
         </div>
       </div>
       <div className="py-1">
+        {creatingIn?.path === '/workspace' && (
+          <div
+            className="flex items-center gap-1 px-2 py-1"
+            style={{ paddingLeft: '8px' }}
+          >
+            <div className="w-4" />
+            {creatingIn.isFolder ? <Folder className="h-4 w-4 text-accent" /> : <File className="h-4 w-4" />}
+            <Input
+              value={newName}
+              onChange={(e) => setNewName(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') handleCreate();
+                if (e.key === 'Escape') setCreatingIn(null);
+              }}
+              onBlur={handleCreate}
+              placeholder={creatingIn.isFolder ? 'New folder' : 'New file'}
+              className="h-6 text-sm"
+              autoFocus
+            />
+          </div>
+        )}
         {files.map((node) => renderNode(node, 0))}
       </div>
     </div>

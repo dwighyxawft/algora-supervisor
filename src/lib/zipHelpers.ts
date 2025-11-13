@@ -89,20 +89,52 @@ export async function exportWorkspaceAsZip(): Promise<Blob> {
   return await zip.generateAsync({ type: 'blob' });
 }
 
-export async function uploadFilesToWorkspace(files: FileList, targetPath = '/workspace'): Promise<number> {
+export async function uploadFilesToWorkspace(files: FileList, targetPath = '/workspace'): Promise<{ uploaded: number; imported?: number; skipped?: number }> {
   const fs = getFs();
   if (!fs) throw new Error('Filesystem not initialized');
 
   let uploaded = 0;
+  let imported = 0;
+  let skipped = 0;
 
   for (let i = 0; i < files.length; i++) {
     const file = files[i];
-    const content = await file.arrayBuffer();
-    const fullPath = `${targetPath}/${file.name}`.replace('//', '/');
     
-    fs.writeFileSync(fullPath, Buffer.from(content));
-    uploaded++;
+    // Check if it's a ZIP file
+    if (file.name.endsWith('.zip')) {
+      // Import ZIP contents
+      const arrayBuffer = await file.arrayBuffer();
+      const zip = await JSZip.loadAsync(arrayBuffer);
+      
+      const zipFiles = Object.keys(zip.files);
+      for (const name of zipFiles) {
+        const entry = zip.files[name];
+        
+        if (entry.dir) continue;
+        
+        const pathParts = name.split('/');
+        if (pathParts.some(p => EXCLUDED_FOLDERS.includes(p))) {
+          skipped++;
+          continue;
+        }
+
+        const content = await entry.async('uint8array');
+        const fullPath = `${targetPath}/${name}`.replace('//', '/');
+        const dir = fullPath.substring(0, fullPath.lastIndexOf('/'));
+        
+        await ensureDirRecursive(fs, dir);
+        fs.writeFileSync(fullPath, Buffer.from(content));
+        imported++;
+      }
+    } else {
+      // Regular file upload
+      const content = await file.arrayBuffer();
+      const fullPath = `${targetPath}/${file.name}`.replace('//', '/');
+      
+      fs.writeFileSync(fullPath, Buffer.from(content));
+      uploaded++;
+    }
   }
 
-  return uploaded;
+  return { uploaded, imported, skipped };
 }
