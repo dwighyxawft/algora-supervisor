@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { initBrowserFs, readDirRecursive, getFs, FileNode } from '@/lib/browserFs';
 import { FileExplorer } from '@/components/FileExplorer';
 import { CodeEditor } from '@/components/CodeEditor';
+import { Toolbar } from '@/components/Toolbar';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2 } from 'lucide-react';
 
@@ -145,19 +146,22 @@ const Index = () => {
   }
 
   return (
-    <div className="flex h-screen bg-background overflow-hidden">
-      <div className="w-64 flex-shrink-0">
-        <FileExplorer
-          files={files}
-          onFileSelect={setSelectedFile}
-          onFileCreate={handleFileCreate}
-          onFileDelete={handleFileDelete}
-          onFileRename={handleFileRename}
-          selectedFile={selectedFile}
-        />
-      </div>
-      <div className="flex-1">
-        <CodeEditor selectedFile={selectedFile} onClose={() => setSelectedFile(null)} />
+    <div className="flex flex-col h-screen bg-background overflow-hidden">
+      <Toolbar onRefresh={refreshFiles} />
+      <div className="flex flex-1 overflow-hidden">
+        <div className="w-64 flex-shrink-0">
+          <FileExplorer
+            files={files}
+            onFileSelect={setSelectedFile}
+            onFileCreate={handleFileCreate}
+            onFileDelete={handleFileDelete}
+            onFileRename={handleFileRename}
+            selectedFile={selectedFile}
+          />
+        </div>
+        <div className="flex-1">
+          <CodeEditor selectedFile={selectedFile} onClose={() => setSelectedFile(null)} />
+        </div>
       </div>
     </div>
   );
