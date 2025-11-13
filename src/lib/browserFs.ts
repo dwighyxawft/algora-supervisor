@@ -6,7 +6,17 @@ export async function initBrowserFs(): Promise<any> {
   if (fsInstance) return fsInstance;
   
   return new Promise((resolve, reject) => {
-    BrowserFS.configure({ fs: 'IndexedDB', options: {} }, function (err) {
+    BrowserFS.configure({
+      fs: 'MountableFileSystem',
+      options: {
+        '/workspace': {
+          fs: 'IndexedDB',
+          options: {
+            storeName: 'workspace-files'
+          }
+        }
+      }
+    }, function (err) {
       if (err) return reject(err);
       const fs = BrowserFS.BFSRequire('fs');
       
