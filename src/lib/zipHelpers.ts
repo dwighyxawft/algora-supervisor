@@ -19,8 +19,12 @@ export async function importZipFromUrl(zipUrl: string, targetRoot = '/workspace'
   const fs = getFs();
   if (!fs) throw new Error('Filesystem not initialized');
 
+  // Use CORS proxy to fetch external URLs
+  const corsProxy = 'https://corsproxy.io/?';
+  const proxiedUrl = zipUrl.startsWith('http') ? `${corsProxy}${encodeURIComponent(zipUrl)}` : zipUrl;
+  
   // Fetch zip file
-  const response = await fetch(zipUrl);
+  const response = await fetch(proxiedUrl);
   if (!response.ok) throw new Error(`Failed to fetch ZIP: ${response.statusText}`);
   
   const arrayBuffer = await response.arrayBuffer();
