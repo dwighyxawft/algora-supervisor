@@ -57,7 +57,7 @@ export async function importZipFromUrl(zipUrl: string, targetRoot = '/workspace'
     await ensureDirRecursive(fs, dir);
     
     // Write file
-    fs.writeFileSync(fullPath, Buffer.from(content));
+    fs.writeFileSync(fullPath, content);
     imported++;
   }
 
@@ -127,7 +127,7 @@ export async function uploadFilesToWorkspace(files: FileList, targetPath = '/wor
         const dir = fullPath.substring(0, fullPath.lastIndexOf('/'));
         
         await ensureDirRecursive(fs, dir);
-        fs.writeFileSync(fullPath, Buffer.from(content));
+        fs.writeFileSync(fullPath, content);
         imported++;
       }
     } else {
@@ -135,7 +135,7 @@ export async function uploadFilesToWorkspace(files: FileList, targetPath = '/wor
       const content = await file.arrayBuffer();
       const fullPath = `${targetPath}/${file.name}`.replace('//', '/');
       
-      fs.writeFileSync(fullPath, Buffer.from(content));
+      fs.writeFileSync(fullPath, new Uint8Array(content));
       uploaded++;
     }
   }
