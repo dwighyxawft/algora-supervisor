@@ -54,8 +54,8 @@ export async function importFolder(files: FileList, targetPath = '/workspace'): 
       }
     }
     
-    const buffer = Buffer.from(content);
-    fs.writeFileSync(fullPath, buffer);
+    const uint8Array = new Uint8Array(content);
+    fs.writeFileSync(fullPath, uint8Array);
     imported++;
   }
 
