@@ -48,16 +48,16 @@ export async function importZipFromUrl(zipUrl: string, targetRoot = '/workspace'
       continue;
     }
 
-    // Read content
-    const content = await entry.async('uint8array');
+    // Read content as text or binary
     const fullPath = `${targetRoot}/${name}`.replace('//', '/');
     const dir = fullPath.substring(0, fullPath.lastIndexOf('/'));
     
     // Ensure directory exists
     await ensureDirRecursive(fs, dir);
     
-    // Write file - ensure it's a proper Uint8Array
-    fs.writeFileSync(fullPath, new Uint8Array(content));
+    // Write file - use nodebuffer for BrowserFS compatibility
+    const content = await entry.async('nodebuffer');
+    fs.writeFileSync(fullPath, content);
     imported++;
   }
 
@@ -122,20 +122,21 @@ export async function uploadFilesToWorkspace(files: FileList, targetPath = '/wor
           continue;
         }
 
-        const content = await entry.async('uint8array');
         const fullPath = `${targetPath}/${name}`.replace('//', '/');
         const dir = fullPath.substring(0, fullPath.lastIndexOf('/'));
         
         await ensureDirRecursive(fs, dir);
-        fs.writeFileSync(fullPath, new Uint8Array(content));
+        const content = await entry.async('nodebuffer');
+        fs.writeFileSync(fullPath, content);
         imported++;
       }
     } else {
       // Regular file upload
       const content = await file.arrayBuffer();
       const fullPath = `${targetPath}/${file.name}`.replace('//', '/');
+      const buffer = Buffer.from(content);
       
-      fs.writeFileSync(fullPath, new Uint8Array(content));
+      fs.writeFileSync(fullPath, buffer);
       uploaded++;
     }
   }
