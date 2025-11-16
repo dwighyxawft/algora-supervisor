@@ -55,8 +55,8 @@ export async function importZipFromUrl(zipUrl: string, targetRoot = '/workspace'
     // Ensure directory exists
     await ensureDirRecursive(fs, dir);
     
-    // Write file - use nodebuffer for BrowserFS compatibility
-    const content = await entry.async('nodebuffer');
+    // Write file - use uint8array for browser compatibility
+    const content = await entry.async('uint8array');
     fs.writeFileSync(fullPath, content);
     imported++;
   }
@@ -126,7 +126,7 @@ export async function uploadFilesToWorkspace(files: FileList, targetPath = '/wor
         const dir = fullPath.substring(0, fullPath.lastIndexOf('/'));
         
         await ensureDirRecursive(fs, dir);
-        const content = await entry.async('nodebuffer');
+        const content = await entry.async('uint8array');
         fs.writeFileSync(fullPath, content);
         imported++;
       }
@@ -134,9 +134,9 @@ export async function uploadFilesToWorkspace(files: FileList, targetPath = '/wor
       // Regular file upload
       const content = await file.arrayBuffer();
       const fullPath = `${targetPath}/${file.name}`.replace('//', '/');
-      const buffer = Buffer.from(content);
+      const uint8Array = new Uint8Array(content);
       
-      fs.writeFileSync(fullPath, buffer);
+      fs.writeFileSync(fullPath, uint8Array);
       uploaded++;
     }
   }
