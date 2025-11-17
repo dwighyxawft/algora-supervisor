@@ -104,18 +104,34 @@ export function FileExplorer({
 
           <div className="flex gap-1 opacity-0 hover:opacity-100 group-hover:opacity-100">
             {node.type === 'folder' && (
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-6 w-6"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setCreatingIn({ path: node.path, isFolder: false });
-                  setNewName('');
-                }}
-              >
-                <Plus className="h-3 w-3" />
-              </Button>
+              <>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-6 w-6"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setCreatingIn({ path: node.path, isFolder: false });
+                    setNewName('');
+                  }}
+                  title="New File"
+                >
+                  <Plus className="h-3 w-3" />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-6 w-6"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setCreatingIn({ path: node.path, isFolder: true });
+                    setNewName('');
+                  }}
+                  title="New Folder"
+                >
+                  <Folder className="h-3 w-3" />
+                </Button>
+              </>
             )}
             <Button
               variant="ghost"

@@ -8,6 +8,7 @@ import { FileSearch } from '@/components/FileSearch';
 import { runCode } from '@/lib/codeRunner';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2 } from 'lucide-react';
+import { autoLoadZipFromUrl } from '@/lib/autoLoadZip';
 
 export const CodeWorkspace = () => {
   const [isReady, setIsReady] = useState(false);
@@ -22,7 +23,17 @@ export const CodeWorkspace = () => {
 
   useEffect(() => {
     initBrowserFs()
-      .then(() => {
+      .then(async () => {
+        // Check if we should auto-load a zip file from URL
+        const autoLoaded = await autoLoadZipFromUrl();
+        
+        if (autoLoaded) {
+          toast({
+            title: 'Workspace loaded',
+            description: 'Project files loaded from URL',
+          });
+        }
+        
         setIsReady(true);
         refreshFiles();
       })
