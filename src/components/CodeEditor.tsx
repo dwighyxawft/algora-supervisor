@@ -1,12 +1,13 @@
 import Editor, { OnMount } from '@monaco-editor/react';
 import { useEffect, useState, useRef } from 'react';
 import { getFs, readDirRecursive } from '@/lib/browserFs';
-import { Save, Wand2 } from 'lucide-react';
+import { Save, Wand2, Play } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { formatCode } from '@/lib/formatter';
 import { configureLinting, enableLinting, configureImportIntellisense } from '@/lib/linter';
 import { EditorTabs } from '@/components/EditorTabs';
+import { exportWorkspaceAsZip } from '@/lib/zipHelpers';
 
 interface CodeEditorProps {
   openFiles: string[];
@@ -28,9 +29,13 @@ export function CodeEditor({
   const [content, setContent] = useState('');
   const [language, setLanguage] = useState('javascript');
   const [isFormatting, setIsFormatting] = useState(false);
+  const [isRunning, setIsRunning] = useState(false);
   const editorRef = useRef<any>(null);
   const monacoRef = useRef<any>(null);
   const { toast } = useToast();
+  
+  // Backend URL - can be set via environment variable
+  const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:3000/api/run';
 
   useEffect(() => {
     if (selectedFile) {
@@ -101,6 +106,59 @@ export function CodeEditor({
     setContent(value || '');
     if (selectedFile) {
       onUnsavedChange(selectedFile, true);
+    }
+  };
+
+  const handleRun = async () => {
+    if (!selectedFile) {
+      toast({
+        title: 'No file selected',
+        description: 'Please select a file to run',
+        variant: 'destructive',
+      });
+      return;
+    }
+    
+    setIsRunning(true);
+    try {
+      // Create a copy of the workspace as zip
+      const zipBlob = await exportWorkspaceAsZip();
+      
+      toast({
+        title: 'Running...',
+        description: `Sending workspace (${(zipBlob.size / 1024).toFixed(2)} KB) to backend...`,
+      });
+      
+      // Create FormData to send
+      const formData = new FormData();
+      formData.append('workspace', zipBlob, 'workspace.zip');
+      formData.append('entryFile', selectedFile);
+      
+      // Send to backend
+      const response = await fetch(BACKEND_URL, {
+        method: 'POST',
+        body: formData,
+      });
+      
+      if (!response.ok) {
+        throw new Error(`Backend error: ${response.statusText}`);
+      }
+      
+      const result = await response.json();
+      
+      toast({
+        title: 'Success',
+        description: result.message || 'Project executed successfully',
+      });
+    } catch (error: any) {
+      console.error('Run error:', error);
+      toast({
+        title: 'Run failed',
+        description: error.message || 'Failed to run project',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsRunning(false);
     }
   };
 
@@ -196,6 +254,17 @@ export function CodeEditor({
               {unsavedFiles.has(selectedFile) && <span className="text-xs text-accent">●</span>}
             </div>
             <div className="flex gap-2">
+              <Button
+                variant="default"
+                size="sm"
+                className="h-7 px-2 gap-1"
+                onClick={handleRun}
+                disabled={isRunning}
+                title="Run project and send to backend"
+              >
+                <Play className="h-3.5 w-3.5" />
+                {isRunning ? 'Running...' : 'Run'}
+              </Button>
               <Button
                 variant="ghost"
                 size="sm"
