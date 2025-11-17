@@ -7,8 +7,11 @@ import { Terminal } from '@/components/Terminal';
 import { FileSearch } from '@/components/FileSearch';
 import { runCode } from '@/lib/codeRunner';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Send } from 'lucide-react';
 import { autoLoadZipFromUrl } from '@/lib/autoLoadZip';
+import { exportWorkspaceAsZip } from '@/lib/zipHelpers';
+import { clearWorkspace } from '@/lib/workspaceHelpers';
+import { Button } from '@/components/ui/button';
 
 export const CodeWorkspace = () => {
   const [isReady, setIsReady] = useState(false);
@@ -19,7 +22,10 @@ export const CodeWorkspace = () => {
   const [showTerminal, setShowTerminal] = useState(false);
   const [showSearch, setShowSearch] = useState(false);
   const [isRunning, setIsRunning] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const { toast } = useToast();
+  
+  const SUBMIT_URL = import.meta.env.VITE_PROJECT_SUBMIT_URL || 'http://localhost:3000/api/submit-project';
 
   useEffect(() => {
     initBrowserFs()
@@ -334,6 +340,50 @@ export const CodeWorkspace = () => {
     }
   };
 
+  const handleSubmit = async () => {
+    setIsSubmitting(true);
+    try {
+      // Zip the entire workspace
+      const zipBlob = await exportWorkspaceAsZip();
+      
+      const formData = new FormData();
+      formData.append('project', zipBlob, 'project.zip');
+      
+      const response = await fetch(SUBMIT_URL, {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (!response.ok) throw new Error('Submit failed');
+      
+      const result = await response.json();
+      
+      toast({
+        title: 'Submitted',
+        description: result.message || 'Project submitted successfully',
+      });
+      
+      // Clear workspace after successful submit
+      await clearWorkspace();
+      refreshFiles();
+      setOpenFiles([]);
+      setSelectedFile(null);
+      
+      toast({
+        title: 'Workspace cleared',
+        description: 'Ready for new project',
+      });
+    } catch (error) {
+      toast({
+        title: 'Error',
+        description: 'Failed to submit project',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   if (!isReady) {
     return (
       <div className="h-screen w-full flex items-center justify-center bg-background">
@@ -347,12 +397,26 @@ export const CodeWorkspace = () => {
 
   return (
     <div className="h-screen w-full flex flex-col bg-background overflow-hidden">
-      <Toolbar 
-        onRefresh={refreshFiles}
-        onRun={handleRun}
-        onToggleTerminal={() => setShowTerminal(!showTerminal)}
-        onToggleSearch={() => setShowSearch(!showSearch)}
-      />
+      <div className="flex items-center justify-between">
+        <Toolbar 
+          onRefresh={refreshFiles}
+          onRun={handleRun}
+          onToggleTerminal={() => setShowTerminal(!showTerminal)}
+          onToggleSearch={() => setShowSearch(!showSearch)}
+        />
+        <div className="px-4">
+          <Button
+            onClick={handleSubmit}
+            disabled={isSubmitting}
+            variant="default"
+            size="sm"
+            className="gap-2"
+          >
+            <Send className="h-4 w-4" />
+            {isSubmitting ? 'Submitting...' : 'Submit Project'}
+          </Button>
+        </div>
+      </div>
       
       {showSearch && (
         <div className="border-b">
