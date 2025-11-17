@@ -60,7 +60,7 @@ export function FileExplorer({
     return (
       <div key={node.path}>
         <div
-          className={`flex items-center gap-1 px-2 py-1 cursor-pointer hover:bg-sidebar-accent ${
+          className={`group flex items-center gap-1 px-2 py-1 cursor-pointer hover:bg-sidebar-accent ${
             isSelected ? 'bg-sidebar-accent' : ''
           }`}
           style={{ paddingLeft: `${depth * 12 + 8}px` }}
