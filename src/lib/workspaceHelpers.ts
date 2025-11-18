@@ -1,4 +1,7 @@
 import { getFs } from './browserFs';
+import { BFSRequire } from 'browserfs';
+
+const Buffer = BFSRequire('buffer').Buffer;
 
 export async function clearWorkspace(): Promise<number> {
   const fs = getFs();
