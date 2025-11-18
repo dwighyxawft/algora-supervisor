@@ -1,8 +1,9 @@
-import Editor from '@monaco-editor/react';
+import Editor, { OnMount } from '@monaco-editor/react';
 import { useState, useRef, useEffect } from 'react';
 import { Save, Play, Upload, Send } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
+import { configureMonacoEditor, editorOptions } from '@/lib/monacoConfig';
 
 interface SingleFileEditorProps {
   fileUrl?: string;
@@ -17,9 +18,15 @@ export function SingleFileEditor({ fileUrl, submitUrl, runUrl }: SingleFileEdito
   const [isRunning, setIsRunning] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const editorRef = useRef<any>(null);
   const { toast } = useToast();
   
   const RUN_URL = runUrl || import.meta.env.VITE_SINGLE_RUN_URL || 'http://localhost:3000/api/run-single';
+
+  const handleEditorMount: OnMount = (editor, monaco) => {
+    editorRef.current = editor;
+    configureMonacoEditor(monaco);
+  };
 
   useEffect(() => {
     if (fileUrl) {
@@ -214,16 +221,10 @@ export function SingleFileEditor({ fileUrl, submitUrl, runUrl }: SingleFileEdito
         <Editor
           value={content}
           onChange={(value) => setContent(value || '')}
+          onMount={handleEditorMount}
           language={language}
           theme="vs-dark"
-          options={{
-            minimap: { enabled: true },
-            fontSize: 14,
-            lineNumbers: 'on',
-            automaticLayout: true,
-            scrollBeyondLastLine: false,
-            wordWrap: 'on',
-          }}
+          options={editorOptions}
         />
       </div>
     </div>
