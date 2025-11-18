@@ -8,6 +8,7 @@ import { formatCode } from '@/lib/formatter';
 import { configureLinting, enableLinting, configureImportIntellisense } from '@/lib/linter';
 import { EditorTabs } from '@/components/EditorTabs';
 import { exportWorkspaceAsZip } from '@/lib/zipHelpers';
+import { configureMonacoEditor, editorOptions } from '@/lib/monacoConfig';
 
 interface CodeEditorProps {
   openFiles: string[];
@@ -202,6 +203,9 @@ export function CodeEditor({
     editorRef.current = editor;
     monacoRef.current = monaco;
     
+    // Configure Monaco with intellisense for all languages
+    configureMonacoEditor(monaco);
+    
     // Configure linting
     configureLinting(monaco);
     enableLinting(editor, monaco);
@@ -297,17 +301,7 @@ export function CodeEditor({
               onChange={handleChange}
               onMount={handleEditorDidMount}
               theme="vs-dark"
-              options={{
-                minimap: { enabled: true },
-                fontSize: 14,
-                lineNumbers: 'on',
-                renderWhitespace: 'selection',
-                scrollBeyondLastLine: false,
-                automaticLayout: true,
-                formatOnPaste: true,
-                formatOnType: true,
-                tabSize: 2,
-              }}
+              options={editorOptions}
             />
           </div>
         </>
