@@ -1,10 +1,16 @@
 import Editor from '@monaco-editor/react';
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { Save, Play, Upload, Send } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 
-export function SingleFileEditor() {
+interface SingleFileEditorProps {
+  fileUrl?: string;
+  submitUrl: string;
+  runUrl?: string;
+}
+
+export function SingleFileEditor({ fileUrl, submitUrl, runUrl }: SingleFileEditorProps) {
   const [content, setContent] = useState('// Start coding here...\n\nconsole.log("Hello, World!");');
   const [fileName, setFileName] = useState('script.js');
   const [language, setLanguage] = useState('javascript');
@@ -13,8 +19,46 @@ export function SingleFileEditor() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
   
-  const RUN_URL = import.meta.env.VITE_SINGLE_RUN_URL || 'http://localhost:3000/api/run-single';
-  const SUBMIT_URL = import.meta.env.VITE_SINGLE_SUBMIT_URL || 'http://localhost:3000/api/submit-single';
+  const RUN_URL = runUrl || import.meta.env.VITE_SINGLE_RUN_URL || 'http://localhost:3000/api/run-single';
+
+  useEffect(() => {
+    if (fileUrl) {
+      fetch(fileUrl)
+        .then(res => res.text())
+        .then(text => {
+          setContent(text);
+          const urlFileName = fileUrl.split('/').pop() || 'script.js';
+          setFileName(urlFileName);
+          
+          const ext = urlFileName.split('.').pop()?.toLowerCase();
+          const langMap: Record<string, string> = {
+            js: 'javascript',
+            jsx: 'javascript',
+            ts: 'typescript',
+            tsx: 'typescript',
+            py: 'python',
+            html: 'html',
+            css: 'css',
+            json: 'json',
+            md: 'markdown',
+          };
+          setLanguage(langMap[ext || ''] || 'plaintext');
+          
+          toast({
+            title: 'File loaded',
+            description: `${urlFileName} loaded from URL`,
+          });
+        })
+        .catch(error => {
+          console.error('Failed to load file:', error);
+          toast({
+            title: 'Error',
+            description: 'Failed to load file from URL',
+            variant: 'destructive',
+          });
+        });
+    }
+  }, [fileUrl, toast]);
 
   const handleImport = () => {
     fileInputRef.current?.click();
@@ -93,7 +137,7 @@ export function SingleFileEditor() {
       const formData = new FormData();
       formData.append('file', blob, fileName);
       
-      const response = await fetch(SUBMIT_URL, {
+      const response = await fetch(submitUrl, {
         method: 'POST',
         body: formData,
       });

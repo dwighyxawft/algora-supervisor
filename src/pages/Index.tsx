@@ -40,7 +40,17 @@ const Index = () => {
     );
   }
 
-  return mode === 'single' ? <SingleFileEditor /> : <CodeWorkspace />;
+  return mode === 'single' ? (
+    <SingleFileEditor 
+      submitUrl={import.meta.env.VITE_SINGLE_SUBMIT_URL || 'http://localhost:3000/api/submit-single'}
+      runUrl={import.meta.env.VITE_SINGLE_RUN_URL || 'http://localhost:3000/api/run-single'}
+    />
+  ) : (
+    <CodeWorkspace 
+      submitUrl={import.meta.env.VITE_PROJECT_SUBMIT_URL || 'http://localhost:3000/api/submit-project'}
+      zipUrl={import.meta.env.VITE_AUTO_LOAD_ZIP_URL}
+    />
+  );
 };
 
 export default Index;

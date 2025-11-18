@@ -8,12 +8,16 @@ import { FileSearch } from '@/components/FileSearch';
 import { runCode } from '@/lib/codeRunner';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2, Send } from 'lucide-react';
-import { autoLoadZipFromUrl } from '@/lib/autoLoadZip';
-import { exportWorkspaceAsZip } from '@/lib/zipHelpers';
+import { exportWorkspaceAsZip, importZipFromUrl } from '@/lib/zipHelpers';
 import { clearWorkspace } from '@/lib/workspaceHelpers';
 import { Button } from '@/components/ui/button';
 
-export const CodeWorkspace = () => {
+interface CodeWorkspaceProps {
+  zipUrl?: string;
+  submitUrl: string;
+}
+
+export const CodeWorkspace = ({ zipUrl, submitUrl }: CodeWorkspaceProps) => {
   const [isReady, setIsReady] = useState(false);
   const [files, setFiles] = useState<FileNode[]>([]);
   const [openFiles, setOpenFiles] = useState<string[]>([]);
@@ -24,20 +28,27 @@ export const CodeWorkspace = () => {
   const [isRunning, setIsRunning] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { toast } = useToast();
-  
-  const SUBMIT_URL = import.meta.env.VITE_PROJECT_SUBMIT_URL || 'http://localhost:3000/api/submit-project';
 
   useEffect(() => {
     initBrowserFs()
       .then(async () => {
-        // Check if we should auto-load a zip file from URL
-        const autoLoaded = await autoLoadZipFromUrl();
-        
-        if (autoLoaded) {
-          toast({
-            title: 'Workspace loaded',
-            description: 'Project files loaded from URL',
-          });
+        // Load zip file if zipUrl prop is provided
+        if (zipUrl) {
+          try {
+            await clearWorkspace();
+            const result = await importZipFromUrl(zipUrl);
+            toast({
+              title: 'Workspace loaded',
+              description: `Imported ${result.imported} files (${result.skipped} skipped)`,
+            });
+          } catch (error) {
+            console.error('Failed to load zip:', error);
+            toast({
+              title: 'Error',
+              description: 'Failed to load project from URL',
+              variant: 'destructive',
+            });
+          }
         }
         
         setIsReady(true);
@@ -51,7 +62,7 @@ export const CodeWorkspace = () => {
           variant: 'destructive',
         });
       });
-  }, [toast]);
+  }, [toast, zipUrl]);
 
   const refreshFiles = () => {
     const fs = getFs();
@@ -311,15 +322,6 @@ export const CodeWorkspace = () => {
   };
 
   const handleRun = async () => {
-    if (!selectedFile) {
-      toast({
-        title: 'No file selected',
-        description: 'Please select a file to run',
-        variant: 'destructive',
-      });
-      return;
-    }
-    
     setIsRunning(true);
     setShowTerminal(true);
     
@@ -327,7 +329,8 @@ export const CodeWorkspace = () => {
       const fs = getFs();
       if (!fs) throw new Error('Filesystem not initialized');
       
-      await runCode(selectedFile);
+      // Run the entire project (codeRunner handles zipping)
+      await runCode(selectedFile || '/workspace');
     } catch (error) {
       console.error('Run error:', error);
       toast({
@@ -349,7 +352,7 @@ export const CodeWorkspace = () => {
       const formData = new FormData();
       formData.append('project', zipBlob, 'project.zip');
       
-      const response = await fetch(SUBMIT_URL, {
+      const response = await fetch(submitUrl, {
         method: 'POST',
         body: formData,
       });
