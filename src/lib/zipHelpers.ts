@@ -1,5 +1,8 @@
 import JSZip from 'jszip';
 import { getFs } from './browserFs';
+import { BFSRequire } from 'browserfs';
+
+const Buffer = BFSRequire('buffer').Buffer;
 
 const EXCLUDED_FOLDERS = ['node_modules', '.git', 'dist', '.cache', '.next', 'build'];
 
