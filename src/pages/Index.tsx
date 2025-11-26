@@ -44,11 +44,15 @@ const Index = () => {
     <SingleFileEditor 
       submitUrl={import.meta.env.VITE_SINGLE_SUBMIT_URL || 'http://localhost:3000/api/submit-single'}
       runUrl={import.meta.env.VITE_SINGLE_RUN_URL || 'http://localhost:3000/api/run-single'}
+      editable={true}
     />
   ) : (
     <CodeWorkspace 
       submitUrl={import.meta.env.VITE_PROJECT_SUBMIT_URL || 'http://localhost:3000/api/submit-project'}
       zipUrl={import.meta.env.VITE_AUTO_LOAD_ZIP_URL}
+      enableAIChat={true}
+      aiEndpoint={import.meta.env.VITE_AI_ENDPOINT || 'http://localhost:3000/api/ai-code'}
+      editable={true}
     />
   );
 };

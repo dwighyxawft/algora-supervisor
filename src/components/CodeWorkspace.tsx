@@ -11,13 +11,23 @@ import { Loader2, Send } from 'lucide-react';
 import { exportWorkspaceAsZip, importZipFromUrl } from '@/lib/zipHelpers';
 import { clearWorkspace } from '@/lib/workspaceHelpers';
 import { Button } from '@/components/ui/button';
+import { AIFileChat } from '@/components/AIFileChat';
 
 interface CodeWorkspaceProps {
   zipUrl?: string;
   submitUrl: string;
+  enableAIChat?: boolean;
+  aiEndpoint?: string;
+  editable?: boolean;
 }
 
-export const CodeWorkspace = ({ zipUrl, submitUrl }: CodeWorkspaceProps) => {
+export const CodeWorkspace = ({ 
+  zipUrl, 
+  submitUrl, 
+  enableAIChat = false,
+  aiEndpoint = '',
+  editable = true 
+}: CodeWorkspaceProps) => {
   const [isReady, setIsReady] = useState(false);
   const [files, setFiles] = useState<FileNode[]>([]);
   const [openFiles, setOpenFiles] = useState<string[]>([]);
@@ -104,6 +114,27 @@ export const CodeWorkspace = ({ zipUrl, submitUrl }: CodeWorkspaceProps) => {
       newUnsavedFiles.delete(path);
     }
     setUnsavedFiles(newUnsavedFiles);
+  };
+
+  const handleAICodeUpdate = (path: string, code: string) => {
+    const fs = getFs();
+    if (fs) {
+      try {
+        fs.writeFileSync(path, code, 'utf8');
+        handleUnsavedChange(path, false);
+        toast({
+          title: 'Code updated',
+          description: 'AI changes applied to file',
+        });
+      } catch (e) {
+        console.error('Error updating file:', e);
+        toast({
+          title: 'Error',
+          description: 'Failed to update file',
+          variant: 'destructive',
+        });
+      }
+    }
   };
 
   const handleFileCreate = (parentPath: string, name: string, isFolder: boolean) => {
@@ -442,24 +473,37 @@ export const CodeWorkspace = ({ zipUrl, submitUrl }: CodeWorkspaceProps) => {
           />
         </div>
         
-        <div className="flex-1 flex flex-col overflow-hidden">
-          <div className={`flex-1 overflow-hidden ${showTerminal ? 'h-1/2' : ''}`}>
-            <CodeEditor 
-              openFiles={openFiles}
-              selectedFile={selectedFile}
-              onFileSelect={handleFileSelect}
-              onFileClose={handleFileClose}
-              onUnsavedChange={handleUnsavedChange}
-              unsavedFiles={unsavedFiles}
-            />
+        <div className="flex-1 flex overflow-hidden">
+          <div className="flex-1 flex flex-col overflow-hidden">
+            <div className={`flex-1 overflow-hidden`}>
+              <CodeEditor 
+                openFiles={openFiles}
+                selectedFile={selectedFile}
+                onFileSelect={handleFileSelect}
+                onFileClose={handleFileClose}
+                onUnsavedChange={handleUnsavedChange}
+                unsavedFiles={unsavedFiles}
+                editable={editable}
+              />
+            </div>
+            
+            {showTerminal && (
+              <div className="h-1/2 border-t">
+                <Terminal 
+                  isRunning={isRunning}
+                  onClose={() => setShowTerminal(false)}
+                  onRun={handleRun}
+                />
+              </div>
+            )}
           </div>
           
-          {showTerminal && (
-            <div className="h-1/2 border-t">
-              <Terminal 
-                isRunning={isRunning}
-                onClose={() => setShowTerminal(false)}
-                onRun={handleRun}
+          {enableAIChat && aiEndpoint && (
+            <div className="w-80 overflow-hidden">
+              <AIFileChat
+                selectedFile={selectedFile}
+                onCodeUpdate={handleAICodeUpdate}
+                aiEndpoint={aiEndpoint}
               />
             </div>
           )}

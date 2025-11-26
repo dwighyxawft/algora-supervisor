@@ -9,9 +9,10 @@ interface SingleFileEditorProps {
   fileUrl?: string;
   submitUrl: string;
   runUrl?: string;
+  editable?: boolean;
 }
 
-export function SingleFileEditor({ fileUrl, submitUrl, runUrl }: SingleFileEditorProps) {
+export function SingleFileEditor({ fileUrl, submitUrl, runUrl, editable = true }: SingleFileEditorProps) {
   const [content, setContent] = useState('// Start coding here...\n\nconsole.log("Hello, World!");');
   const [fileName, setFileName] = useState('script.js');
   const [language, setLanguage] = useState('javascript');
@@ -224,7 +225,10 @@ export function SingleFileEditor({ fileUrl, submitUrl, runUrl }: SingleFileEdito
           onMount={handleEditorMount}
           language={language}
           theme="vs-dark"
-          options={editorOptions}
+          options={{
+            ...editorOptions,
+            readOnly: !editable,
+          }}
         />
       </div>
     </div>
