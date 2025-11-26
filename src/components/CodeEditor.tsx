@@ -17,6 +17,7 @@ interface CodeEditorProps {
   onFileClose: (path: string) => void;
   unsavedFiles: Set<string>;
   onUnsavedChange: (path: string, hasChanges: boolean) => void;
+  editable?: boolean;
 }
 
 export function CodeEditor({ 
@@ -25,7 +26,8 @@ export function CodeEditor({
   onFileSelect, 
   onFileClose,
   unsavedFiles,
-  onUnsavedChange 
+  onUnsavedChange,
+  editable = true
 }: CodeEditorProps) {
   const [content, setContent] = useState('');
   const [language, setLanguage] = useState('javascript');
@@ -301,7 +303,10 @@ export function CodeEditor({
               onChange={handleChange}
               onMount={handleEditorDidMount}
               theme="vs-dark"
-              options={editorOptions}
+              options={{
+                ...editorOptions,
+                readOnly: !editable,
+              }}
             />
           </div>
         </>
