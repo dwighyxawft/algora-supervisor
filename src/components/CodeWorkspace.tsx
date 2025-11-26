@@ -7,7 +7,7 @@ import { Terminal } from '@/components/Terminal';
 import { FileSearch } from '@/components/FileSearch';
 import { runCode } from '@/lib/codeRunner';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, Send } from 'lucide-react';
+import { Loader2, Send, Bot, X } from 'lucide-react';
 import { exportWorkspaceAsZip, importZipFromUrl } from '@/lib/zipHelpers';
 import { clearWorkspace } from '@/lib/workspaceHelpers';
 import { Button } from '@/components/ui/button';
@@ -35,6 +35,7 @@ export const CodeWorkspace = ({
   const [unsavedFiles, setUnsavedFiles] = useState<Set<string>>(new Set());
   const [showTerminal, setShowTerminal] = useState(false);
   const [showSearch, setShowSearch] = useState(false);
+  const [showAIChat, setShowAIChat] = useState(false);
   const [isRunning, setIsRunning] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { toast } = useToast();
@@ -438,7 +439,18 @@ export const CodeWorkspace = ({
           onToggleTerminal={() => setShowTerminal(!showTerminal)}
           onToggleSearch={() => setShowSearch(!showSearch)}
         />
-        <div className="px-4">
+        <div className="px-4 flex gap-2">
+          {enableAIChat && aiEndpoint && selectedFile && (
+            <Button
+              onClick={() => setShowAIChat(!showAIChat)}
+              variant={showAIChat ? "secondary" : "outline"}
+              size="sm"
+              className="gap-2"
+            >
+              {showAIChat ? <X className="h-4 w-4" /> : <Bot className="h-4 w-4" />}
+              {showAIChat ? 'Close AI' : 'AI Assistant'}
+            </Button>
+          )}
           <Button
             onClick={handleSubmit}
             disabled={isSubmitting}
@@ -498,7 +510,7 @@ export const CodeWorkspace = ({
             )}
           </div>
           
-          {enableAIChat && aiEndpoint && (
+          {enableAIChat && aiEndpoint && selectedFile && showAIChat && (
             <div className="w-80 overflow-hidden">
               <AIFileChat
                 selectedFile={selectedFile}
