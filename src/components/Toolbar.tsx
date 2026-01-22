@@ -3,7 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Download, Upload, Link2, FileCode, Loader2, Play, Search, FolderOpen, Trash2 } from 'lucide-react';
+import { Download, Upload, Link2, FileCode, Loader2, Play, Search, FolderOpen, Trash2, Terminal } from 'lucide-react';
 import { importZipFromUrl, exportWorkspaceAsZip, uploadFilesToWorkspace } from '@/lib/zipHelpers';
 import { importFolder, clearWorkspace } from '@/lib/workspaceHelpers';
 import { useToast } from '@/hooks/use-toast';
@@ -223,6 +223,17 @@ export function Toolbar({ onRefresh, onRun, onToggleTerminal, onToggleSearch }: 
         )}
 
         <div className="flex-1" />
+
+        {onToggleTerminal && (
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={onToggleTerminal}
+            title="Toggle Terminal"
+          >
+            <Terminal className="h-4 w-4" />
+          </Button>
+        )}
 
         {onToggleSearch && (
           <Button
