@@ -144,7 +144,7 @@ export async function fetchPackageInfo(packageName: string): Promise<NpmPackageI
 function createPackageStub(fs: any, packageInfo: NpmPackageInfo) {
   const basePath = `/workspace/node_modules/${packageInfo.name}`;
   
-  // Ensure directory exists
+  // Ensure directory exists (handles scoped packages like @nestjs/swagger)
   ensureDirRecursive(fs, basePath);
   
   // Create package.json
@@ -155,15 +155,22 @@ function createPackageStub(fs: any, packageInfo: NpmPackageInfo) {
     main: packageInfo.main || 'index.js',
     types: packageInfo.types || 'index.d.ts'
   };
-  fs.writeFileSync(`${basePath}/package.json`, JSON.stringify(packageJson, null, 2), 'utf8');
+  // Use Buffer for BrowserFS InMemory compatibility
+  fs.writeFileSync(`${basePath}/package.json`, Buffer.from(JSON.stringify(packageJson, null, 2), 'utf8'));
   
-  // Create main entry file
+  // Create main entry file - handle nested paths like dist/index.js
   const mainFile = packageInfo.main || 'index.js';
+  const mainFilePath = `${basePath}/${mainFile}`;
+  const mainFileDir = mainFilePath.substring(0, mainFilePath.lastIndexOf('/'));
+  if (mainFileDir !== basePath) {
+    ensureDirRecursive(fs, mainFileDir);
+  }
+  
   const mainContent = `// Virtual stub for ${packageInfo.name}@${packageInfo.version}
 // This is a placeholder for editor IntelliSense support
 module.exports = {};
 `;
-  fs.writeFileSync(`${basePath}/${mainFile}`, mainContent, 'utf8');
+  fs.writeFileSync(mainFilePath, Buffer.from(mainContent, 'utf8'));
   
   // Create TypeScript declaration file
   const dtsContent = `// Type definitions for ${packageInfo.name}@${packageInfo.version}
@@ -175,18 +182,32 @@ declare module '${packageInfo.name}' {
   export = content;
 }
 `;
-  fs.writeFileSync(`${basePath}/index.d.ts`, dtsContent, 'utf8');
+  fs.writeFileSync(`${basePath}/index.d.ts`, Buffer.from(dtsContent, 'utf8'));
 }
 
-// Ensure directory exists recursively
+// Ensure directory exists recursively (handles scoped packages like @nestjs/swagger)
 function ensureDirRecursive(fs: any, dirPath: string) {
-  if (!dirPath || dirPath === '/' || fs.existsSync(dirPath)) return;
+  if (!dirPath || dirPath === '/') return;
+  
+  try {
+    if (fs.existsSync(dirPath)) return;
+  } catch {
+    // Path doesn't exist, continue to create
+  }
+  
   const parts = dirPath.split('/').filter(Boolean);
   let cur = '';
   for (const p of parts) {
     cur += '/' + p;
-    if (!fs.existsSync(cur)) {
-      fs.mkdirSync(cur);
+    try {
+      if (!fs.existsSync(cur)) {
+        fs.mkdirSync(cur);
+      }
+    } catch (e: any) {
+      // Directory might already exist, ignore EEXIST errors
+      if (e.code !== 'EEXIST') {
+        console.error(`Failed to create directory ${cur}:`, e);
+      }
     }
   }
 }
@@ -203,7 +224,7 @@ function readPackageJson(fs: any): any {
 
 // Write package.json
 function writePackageJson(fs: any, pkg: any) {
-  fs.writeFileSync('/workspace/package.json', JSON.stringify(pkg, null, 2), 'utf8');
+  fs.writeFileSync('/workspace/package.json', Buffer.from(JSON.stringify(pkg, null, 2), 'utf8'));
 }
 
 // Install all dependencies from package.json
