@@ -505,6 +505,7 @@ export const CodeWorkspace = ({
                   isRunning={isRunning}
                   onClose={() => setShowTerminal(false)}
                   onRun={handleRun}
+                  onRefreshFiles={refreshFiles}
                 />
               </div>
             )}
