@@ -74,10 +74,15 @@ export async function exportWorkspaceAsZip(): Promise<Blob> {
 
   const zip = new JSZip();
 
-  function addToZip(dirPath: string, zipFolder: JSZip) {
+function addToZip(dirPath: string, zipFolder: JSZip) {
     const items = fs.readdirSync(dirPath);
     
     for (const name of items) {
+      // Skip node_modules when exporting (backend will do real install)
+      if (EXCLUDED_FOLDERS.includes(name)) {
+        continue;
+      }
+      
       const fullPath = `${dirPath}/${name}`.replace('//', '/');
       const stat = fs.statSync(fullPath);
       
