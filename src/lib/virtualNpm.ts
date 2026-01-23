@@ -47,7 +47,7 @@ export function getProjectType(): string | null {
   try {
     if (fs.existsSync('/workspace/package.json')) {
       const content = fs.readFileSync('/workspace/package.json', 'utf8');
-      const pkg = JSON.parse(content);
+      const pkg = JSON.parse(content.toString());
       const deps = { ...pkg.dependencies, ...pkg.devDependencies };
       
       if (deps['@nestjs/core']) return 'nestjs';
@@ -89,7 +89,7 @@ export function parseNpmCommand(command: string): { action: string; packages: st
   };
 }
 
-// Fetch package info from npm registry
+// Fetch package info from npm registry with better error handling
 export async function fetchPackageInfo(packageName: string): Promise<NpmPackageInfo | null> {
   try {
     // Parse package name and version
@@ -109,11 +109,26 @@ export async function fetchPackageInfo(packageName: string): Promise<NpmPackageI
       }
     }
     
-    const response = await fetch(`https://registry.npmjs.org/${name}/${requestedVersion}`);
+    // Encode the package name for URL (handles scoped packages)
+    const encodedName = encodeURIComponent(name).replace('%40', '@');
+    
+    const response = await fetch(`https://registry.npmjs.org/${encodedName}/${requestedVersion}`, {
+      headers: { 'Accept': 'application/json' }
+    });
+    
     if (!response.ok) {
       // Try fetching latest if specific version fails
-      const latestResponse = await fetch(`https://registry.npmjs.org/${name}/latest`);
-      if (!latestResponse.ok) return null;
+      const latestResponse = await fetch(`https://registry.npmjs.org/${encodedName}/latest`, {
+        headers: { 'Accept': 'application/json' }
+      });
+      if (!latestResponse.ok) {
+        // Return a default stub info so we can still create a placeholder
+        return {
+          name,
+          version: requestedVersion === 'latest' ? '1.0.0' : requestedVersion,
+          main: 'index.js'
+        };
+      }
       const data = await latestResponse.json();
       return {
         name: data.name,
@@ -135,17 +150,74 @@ export async function fetchPackageInfo(packageName: string): Promise<NpmPackageI
       dependencies: data.dependencies
     };
   } catch (error) {
-    console.error(`Failed to fetch package info for ${packageName}:`, error);
-    return null;
+    console.warn(`Could not fetch registry info for ${packageName}, using stub`);
+    // Return default stub info on network error
+    const name = packageName.startsWith('@') 
+      ? packageName.match(/^(@[^@]+)/)?.[1] || packageName 
+      : packageName.split('@')[0];
+    return {
+      name,
+      version: '1.0.0',
+      main: 'index.js'
+    };
+  }
+}
+
+// Safely create a directory, handling BrowserFS quirks
+function safeCreateDir(fs: any, path: string): boolean {
+  try {
+    if (fs.existsSync(path)) return true;
+    fs.mkdirSync(path);
+    return true;
+  } catch (e: any) {
+    if (e.code === 'EEXIST') return true;
+    console.warn(`Could not create directory ${path}:`, e.message);
+    return false;
+  }
+}
+
+// Ensure directory exists recursively (handles scoped packages like @nestjs/swagger)
+function ensureDirRecursive(fs: any, dirPath: string): boolean {
+  if (!dirPath || dirPath === '/') return true;
+  
+  try {
+    if (fs.existsSync(dirPath)) return true;
+  } catch {
+    // Path doesn't exist, continue to create
+  }
+  
+  const parts = dirPath.split('/').filter(Boolean);
+  let cur = '';
+  for (const p of parts) {
+    cur += '/' + p;
+    if (!safeCreateDir(fs, cur)) {
+      return false;
+    }
+  }
+  return true;
+}
+
+// Safely write a file, handling BrowserFS quirks
+function safeWriteFile(fs: any, path: string, content: string): boolean {
+  try {
+    // BrowserFS InMemory requires Uint8Array
+    const data = new Uint8Array(Buffer.from(content, 'utf8'));
+    fs.writeFileSync(path, data);
+    return true;
+  } catch (e: any) {
+    console.warn(`Could not write file ${path}:`, e.message);
+    return false;
   }
 }
 
 // Create stub files for a package
-function createPackageStub(fs: any, packageInfo: NpmPackageInfo) {
+function createPackageStub(fs: any, packageInfo: NpmPackageInfo): boolean {
   const basePath = `/workspace/node_modules/${packageInfo.name}`;
   
   // Ensure directory exists (handles scoped packages like @nestjs/swagger)
-  ensureDirRecursive(fs, basePath);
+  if (!ensureDirRecursive(fs, basePath)) {
+    return false;
+  }
   
   // Create package.json
   const packageJson = {
@@ -155,24 +227,27 @@ function createPackageStub(fs: any, packageInfo: NpmPackageInfo) {
     main: packageInfo.main || 'index.js',
     types: packageInfo.types || 'index.d.ts'
   };
-  // Use Buffer for BrowserFS InMemory compatibility
-  fs.writeFileSync(`${basePath}/package.json`, Buffer.from(JSON.stringify(packageJson, null, 2), 'utf8'));
+  
+  if (!safeWriteFile(fs, `${basePath}/package.json`, JSON.stringify(packageJson, null, 2))) {
+    return false;
+  }
   
   // Create main entry file - handle nested paths like dist/index.js
   const mainFile = packageInfo.main || 'index.js';
   const mainFilePath = `${basePath}/${mainFile}`;
   const mainFileDir = mainFilePath.substring(0, mainFilePath.lastIndexOf('/'));
-  if (mainFileDir !== basePath) {
+  if (mainFileDir !== basePath && mainFileDir.length > basePath.length) {
     ensureDirRecursive(fs, mainFileDir);
   }
   
   const mainContent = `// Virtual stub for ${packageInfo.name}@${packageInfo.version}
 // This is a placeholder for editor IntelliSense support
 module.exports = {};
+exports.default = {};
 `;
-  fs.writeFileSync(mainFilePath, Buffer.from(mainContent, 'utf8'));
+  safeWriteFile(fs, mainFilePath, mainContent);
   
-  // Create TypeScript declaration file
+  // Create TypeScript declaration file at root
   const dtsContent = `// Type definitions for ${packageInfo.name}@${packageInfo.version}
 // This is a placeholder for TypeScript IntelliSense support
 
@@ -181,50 +256,31 @@ declare module '${packageInfo.name}' {
   export default content;
   export = content;
 }
-`;
-  fs.writeFileSync(`${basePath}/index.d.ts`, Buffer.from(dtsContent, 'utf8'));
-}
 
-// Ensure directory exists recursively (handles scoped packages like @nestjs/swagger)
-function ensureDirRecursive(fs: any, dirPath: string) {
-  if (!dirPath || dirPath === '/') return;
+declare module '${packageInfo.name}/*' {
+  const content: any;
+  export default content;
+  export = content;
+}
+`;
+  safeWriteFile(fs, `${basePath}/index.d.ts`, dtsContent);
   
-  try {
-    if (fs.existsSync(dirPath)) return;
-  } catch {
-    // Path doesn't exist, continue to create
-  }
-  
-  const parts = dirPath.split('/').filter(Boolean);
-  let cur = '';
-  for (const p of parts) {
-    cur += '/' + p;
-    try {
-      if (!fs.existsSync(cur)) {
-        fs.mkdirSync(cur);
-      }
-    } catch (e: any) {
-      // Directory might already exist, ignore EEXIST errors
-      if (e.code !== 'EEXIST') {
-        console.error(`Failed to create directory ${cur}:`, e);
-      }
-    }
-  }
+  return true;
 }
 
 // Read package.json
 function readPackageJson(fs: any): any {
   try {
     const content = fs.readFileSync('/workspace/package.json', 'utf8');
-    return JSON.parse(content);
+    return JSON.parse(content.toString());
   } catch {
     return null;
   }
 }
 
 // Write package.json
-function writePackageJson(fs: any, pkg: any) {
-  fs.writeFileSync('/workspace/package.json', Buffer.from(JSON.stringify(pkg, null, 2), 'utf8'));
+function writePackageJson(fs: any, pkg: any): boolean {
+  return safeWriteFile(fs, '/workspace/package.json', JSON.stringify(pkg, null, 2));
 }
 
 // Install all dependencies from package.json
@@ -252,32 +308,62 @@ export async function installAllDependencies(
   }
   
   // Ensure node_modules exists
-  ensureDirRecursive(fs, '/workspace/node_modules');
+  if (!ensureDirRecursive(fs, '/workspace/node_modules')) {
+    return { success: false, installed: [], failed: [], message: 'Failed to create node_modules directory' };
+  }
   
   const installed: string[] = [];
   const failed: string[] = [];
   
-  for (const dep of depNames) {
-    const version = allDeps[dep];
-    onProgress?.(`Installing ${dep}@${version}...`);
+  // Process in batches of 5 for better performance
+  const batchSize = 5;
+  for (let i = 0; i < depNames.length; i += batchSize) {
+    const batch = depNames.slice(i, i + batchSize);
     
-    try {
-      const info = await fetchPackageInfo(`${dep}@${version.replace(/^[\^~]/, '')}`);
-      if (info) {
-        createPackageStub(fs, info);
-        installed.push(`${info.name}@${info.version}`);
+    const results = await Promise.all(
+      batch.map(async (dep) => {
+        const version = allDeps[dep];
+        const cleanVersion = version.replace(/^[\^~>=<]/, '').split(' ')[0];
+        onProgress?.(`Installing ${dep}@${version}...`);
+        
+        try {
+          const info = await fetchPackageInfo(`${dep}@${cleanVersion}`);
+          if (info && createPackageStub(fs, info)) {
+            return { success: true, name: `${info.name}@${info.version}` };
+          } else {
+            // Try creating a basic stub
+            const basicInfo: NpmPackageInfo = {
+              name: dep,
+              version: cleanVersion || '1.0.0',
+              main: 'index.js'
+            };
+            if (createPackageStub(fs, basicInfo)) {
+              return { success: true, name: `${dep}@${cleanVersion || '1.0.0'}` };
+            }
+            return { success: false, name: dep };
+          }
+        } catch (error) {
+          // Last resort: create basic stub
+          const basicInfo: NpmPackageInfo = {
+            name: dep,
+            version: cleanVersion || '1.0.0',
+            main: 'index.js'
+          };
+          if (createPackageStub(fs, basicInfo)) {
+            return { success: true, name: `${dep}@${cleanVersion || '1.0.0'}` };
+          }
+          return { success: false, name: dep };
+        }
+      })
+    );
+    
+    for (const result of results) {
+      if (result.success) {
+        installed.push(result.name);
       } else {
-        // Create a basic stub even if fetch fails
-        createPackageStub(fs, {
-          name: dep,
-          version: version.replace(/^[\^~]/, '') || '1.0.0',
-          main: 'index.js'
-        });
-        installed.push(`${dep}@${version}`);
+        failed.push(result.name);
+        onProgress?.(`Failed to install ${result.name}`);
       }
-    } catch (error) {
-      failed.push(dep);
-      onProgress?.(`Failed to install ${dep}`);
     }
   }
   
@@ -306,7 +392,9 @@ export async function installPackages(
   }
   
   // Ensure node_modules exists
-  ensureDirRecursive(fs, '/workspace/node_modules');
+  if (!ensureDirRecursive(fs, '/workspace/node_modules')) {
+    return { success: false, installed: [], failed: [], message: 'Failed to create node_modules directory' };
+  }
   
   const installed: string[] = [];
   const failed: string[] = [];
@@ -316,8 +404,7 @@ export async function installPackages(
     
     try {
       const info = await fetchPackageInfo(packageName);
-      if (info) {
-        createPackageStub(fs, info);
+      if (info && createPackageStub(fs, info)) {
         installed.push(`${info.name}@${info.version}`);
         
         // Update package.json
@@ -326,7 +413,7 @@ export async function installPackages(
         pkg[depKey][info.name] = `^${info.version}`;
       } else {
         failed.push(packageName);
-        onProgress?.(`Package not found: ${packageName}`);
+        onProgress?.(`Failed to create stub for: ${packageName}`);
       }
     } catch (error) {
       failed.push(packageName);
@@ -382,7 +469,7 @@ export async function uninstallPackages(
         removed.push(packageName);
       } else {
         failed.push(packageName);
-        onProgress?.(`Package not found: ${packageName}`);
+        onProgress?.(`Package not found in package.json: ${packageName}`);
       }
     } catch (error) {
       failed.push(packageName);
@@ -403,19 +490,23 @@ export async function uninstallPackages(
 
 // Remove directory recursively
 function removeDir(fs: any, dirPath: string) {
-  if (!fs.existsSync(dirPath)) return;
-  
-  const stat = fs.statSync(dirPath);
-  if (!stat.isDirectory()) {
-    fs.unlinkSync(dirPath);
-    return;
+  try {
+    if (!fs.existsSync(dirPath)) return;
+    
+    const stat = fs.statSync(dirPath);
+    if (!stat.isDirectory()) {
+      fs.unlinkSync(dirPath);
+      return;
+    }
+    
+    const items = fs.readdirSync(dirPath);
+    for (const item of items) {
+      removeDir(fs, `${dirPath}/${item}`);
+    }
+    fs.rmdirSync(dirPath);
+  } catch (e) {
+    console.warn(`Could not remove ${dirPath}:`, e);
   }
-  
-  const items = fs.readdirSync(dirPath);
-  for (const item of items) {
-    removeDir(fs, `${dirPath}/${item}`);
-  }
-  fs.rmdirSync(dirPath);
 }
 
 // Execute npm command
