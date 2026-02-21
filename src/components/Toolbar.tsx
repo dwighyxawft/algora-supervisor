@@ -25,8 +25,7 @@ interface ToolbarProps {
   onToggleSearch?: () => void;
 }
 
-// Boilerplates will be loaded from backend
-const BOILERPLATES: { name: string; url: string }[] = [];
+import { PROJECT_TEMPLATES } from '@/lib/projectTemplates';
 
 export function Toolbar({ onRefresh, onRun, onToggleTerminal, onToggleSearch }: ToolbarProps) {
   const [showImportDialog, setShowImportDialog] = useState(false);
@@ -134,17 +133,18 @@ export function Toolbar({ onRefresh, onRun, onToggleTerminal, onToggleSearch }: 
     if (!url) return;
     setIsLoading(true);
     try {
+      await clearWorkspace();
       await importZipFromUrl(url);
       onRefresh();
       toast({
-        title: 'Boilerplate loaded',
-        description: 'Project template has been loaded successfully',
+        title: 'Template loaded',
+        description: 'Project base structure has been loaded successfully',
       });
     } catch (error) {
-      console.error('Boilerplate load error:', error);
+      console.error('Template load error:', error);
       toast({
-        title: 'Failed to load boilerplate',
-        description: 'Could not load the project template',
+        title: 'Failed to load template',
+        description: 'Could not load the project base structure',
         variant: 'destructive',
       });
     } finally {
@@ -204,17 +204,17 @@ export function Toolbar({ onRefresh, onRun, onToggleTerminal, onToggleSearch }: 
   return (
     <>
       <div className="h-12 bg-toolbar-background border-b border-border flex items-center gap-2 px-4">
-        {BOILERPLATES.length > 0 && (
+        {PROJECT_TEMPLATES.length > 0 && (
           <Select onValueChange={handleBoilerplateSelect} disabled={isLoading}>
-            <SelectTrigger className="w-48 h-8">
-              <SelectValue placeholder="Load boilerplate..." />
+            <SelectTrigger className="w-52 h-8">
+              <SelectValue placeholder="Base Structure..." />
             </SelectTrigger>
-            <SelectContent>
-              {BOILERPLATES.map((bp) => (
-                <SelectItem key={bp.url} value={bp.url}>
+            <SelectContent className="bg-popover z-50">
+              {PROJECT_TEMPLATES.map((t) => (
+                <SelectItem key={t.name} value={t.zipUrl}>
                   <div className="flex items-center gap-2">
                     <FileCode className="h-4 w-4" />
-                    {bp.name}
+                    {t.label}
                   </div>
                 </SelectItem>
               ))}
