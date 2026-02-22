@@ -2,8 +2,30 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
-import Index from "./pages/Index";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { AuthProvider } from "@/contexts/AuthContext";
+import { ProtectedRoute } from "@/components/supervisor/ProtectedRoute";
+import SupervisorLayout from "@/components/supervisor/SupervisorLayout";
+
+// Auth pages
+import LoginPage from "@/pages/supervisor/LoginPage";
+import ForgotPasswordPage from "@/pages/supervisor/ForgotPasswordPage";
+import ResetPasswordPage from "@/pages/supervisor/ResetPasswordPage";
+
+// Dashboard pages
+import DashboardPage from "@/pages/supervisor/DashboardPage";
+import MentorListPage from "@/pages/supervisor/MentorListPage";
+import MentorProfilePage from "@/pages/supervisor/MentorProfilePage";
+import ScreeningDashboardPage from "@/pages/supervisor/ScreeningDashboardPage";
+import CreateScreeningPage from "@/pages/supervisor/CreateScreeningPage";
+import ScreeningReviewPage from "@/pages/supervisor/ScreeningReviewPage";
+import MeetingsPage from "@/pages/supervisor/MeetingsPage";
+import ComplaintsPage from "@/pages/supervisor/ComplaintsPage";
+import ReviewsPage from "@/pages/supervisor/ReviewsPage";
+import AnalyticsPage from "@/pages/supervisor/AnalyticsPage";
+import TasksPage from "@/pages/supervisor/TasksPage";
+import SettingsPage from "@/pages/supervisor/SettingsPage";
+
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -11,15 +33,41 @@ const queryClient = new QueryClient();
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
-      <Toaster />
-      <Sonner />
-      <BrowserRouter>
-        <Routes>
-          <Route path="/" element={<Index />} />
-          {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-          <Route path="*" element={<NotFound />} />
-        </Routes>
-      </BrowserRouter>
+      <AuthProvider>
+        <Toaster />
+        <Sonner />
+        <BrowserRouter>
+          <Routes>
+            {/* Redirect root to supervisor login */}
+            <Route path="/" element={<Navigate to="/supervisor/login" replace />} />
+
+            {/* Supervisor auth routes */}
+            <Route path="/supervisor/login" element={<LoginPage />} />
+            <Route path="/supervisor/forgot-password" element={<ForgotPasswordPage />} />
+            <Route path="/supervisor/reset-password" element={<ResetPasswordPage />} />
+
+            {/* Protected supervisor routes */}
+            <Route element={<ProtectedRoute />}>
+              <Route element={<SupervisorLayout />}>
+                <Route path="/supervisor/dashboard" element={<DashboardPage />} />
+                <Route path="/supervisor/mentors" element={<MentorListPage />} />
+                <Route path="/supervisor/mentors/:id" element={<MentorProfilePage />} />
+                <Route path="/supervisor/screening" element={<ScreeningDashboardPage />} />
+                <Route path="/supervisor/screening/create" element={<CreateScreeningPage />} />
+                <Route path="/supervisor/screening/:id" element={<ScreeningReviewPage />} />
+                <Route path="/supervisor/meetings" element={<MeetingsPage />} />
+                <Route path="/supervisor/complaints" element={<ComplaintsPage />} />
+                <Route path="/supervisor/reviews" element={<ReviewsPage />} />
+                <Route path="/supervisor/analytics" element={<AnalyticsPage />} />
+                <Route path="/supervisor/tasks" element={<TasksPage />} />
+                <Route path="/supervisor/settings" element={<SettingsPage />} />
+              </Route>
+            </Route>
+
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+        </BrowserRouter>
+      </AuthProvider>
     </TooltipProvider>
   </QueryClientProvider>
 );
