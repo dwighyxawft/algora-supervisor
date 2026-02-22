@@ -2,55 +2,64 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Definition of the design system. All colors, gradients, fonts, etc should be defined here. 
-All colors MUST be HSL.
-*/
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Space+Grotesk:wght@400;500;600;700&display=swap');
 
 @layer base {
   :root {
-    --background: 220 13% 13%;
-    --foreground: 210 20% 98%;
+    --background: 222 47% 2%;
+    --foreground: 0 0% 100%;
 
-    --card: 220 13% 15%;
-    --card-foreground: 210 20% 98%;
+    --card: 222 30% 6%;
+    --card-foreground: 0 0% 100%;
 
-    --popover: 220 13% 15%;
-    --popover-foreground: 210 20% 98%;
+    --popover: 222 30% 8%;
+    --popover-foreground: 0 0% 100%;
 
-    --primary: 199 89% 48%;
-    --primary-foreground: 210 20% 98%;
+    --primary: 217 91% 53%;
+    --primary-foreground: 0 0% 100%;
 
-    --secondary: 220 13% 18%;
-    --secondary-foreground: 210 20% 98%;
+    --secondary: 222 47% 11%;
+    --secondary-foreground: 0 0% 100%;
 
-    --muted: 220 13% 20%;
-    --muted-foreground: 215 15% 65%;
+    --muted: 222 30% 14%;
+    --muted-foreground: 215 20% 55%;
 
-    --accent: 199 89% 48%;
-    --accent-foreground: 210 20% 98%;
+    --accent: 211 97% 68%;
+    --accent-foreground: 222 47% 2%;
 
     --destructive: 0 72% 51%;
-    --destructive-foreground: 210 20% 98%;
+    --destructive-foreground: 0 0% 100%;
 
-    --border: 220 13% 22%;
-    --input: 220 13% 18%;
-    --ring: 199 89% 48%;
+    --border: 222 20% 14%;
+    --input: 222 30% 10%;
+    --ring: 217 91% 53%;
 
-    --radius: 0.25rem;
+    --radius: 0.5rem;
 
-    --sidebar-background: 220 13% 11%;
-    --sidebar-foreground: 215 15% 75%;
-    --sidebar-primary: 199 89% 48%;
-    --sidebar-primary-foreground: 210 20% 98%;
-    --sidebar-accent: 220 13% 16%;
-    --sidebar-accent-foreground: 210 20% 98%;
-    --sidebar-border: 220 13% 18%;
-    --sidebar-ring: 199 89% 48%;
+    --sidebar-background: 222 47% 4%;
+    --sidebar-foreground: 215 20% 65%;
+    --sidebar-primary: 217 91% 53%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 222 30% 10%;
+    --sidebar-accent-foreground: 0 0% 100%;
+    --sidebar-border: 222 20% 12%;
+    --sidebar-ring: 217 91% 53%;
 
-    --editor-background: 220 13% 13%;
-    --explorer-background: 220 13% 11%;
-    --toolbar-background: 220 13% 15%;
-    --terminal-background: 220 13% 9%;
+    --success: 142 76% 36%;
+    --success-foreground: 0 0% 100%;
+    --warning: 38 92% 50%;
+    --warning-foreground: 0 0% 0%;
+
+    --editor-background: 222 47% 2%;
+    --explorer-background: 222 47% 4%;
+    --toolbar-background: 222 30% 6%;
+    --terminal-background: 222 47% 2%;
+
+    --chart-1: 217 91% 53%;
+    --chart-2: 211 97% 68%;
+    --chart-3: 142 76% 36%;
+    --chart-4: 38 92% 50%;
+    --chart-5: 0 72% 51%;
   }
 }
 
@@ -60,6 +69,29 @@ All colors MUST be HSL.
   }
 
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background text-foreground font-sans antialiased;
+    font-family: 'Inter', system-ui, sans-serif;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    font-family: 'Space Grotesk', 'Inter', sans-serif;
+  }
+}
+
+@layer utilities {
+  .glass-card {
+    @apply bg-card/60 backdrop-blur-xl border border-border/50;
+  }
+  .gradient-primary {
+    background: linear-gradient(135deg, hsl(217 91% 53%), hsl(211 97% 68%));
+  }
+  .gradient-text {
+    background: linear-gradient(135deg, hsl(217 91% 53%), hsl(211 97% 68%));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  .animate-glow {
+    box-shadow: 0 0 20px hsl(217 91% 53% / 0.15), 0 0 60px hsl(217 91% 53% / 0.05);
   }
 }
