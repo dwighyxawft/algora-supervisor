@@ -1,22 +1,17 @@
-import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useScreenings } from '@/hooks/use-api';
 import { StatCard } from '@/components/supervisor/StatCard';
 import { DataTable } from '@/components/supervisor/DataTable';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { ClipboardCheck, Plus, CheckCircle, XCircle, Clock, Users } from 'lucide-react';
+import { Skeleton } from '@/components/ui/skeleton';
+import { ClipboardCheck, Plus, CheckCircle, XCircle, Clock } from 'lucide-react';
+import { useMemo } from 'react';
 import type { Screening } from '@/lib/api/models';
-
-const MOCK_SCREENINGS = [
-  { id: '1', title: 'React Developer Screening', mentor: 'John Doe', status: 'IN_PROGRESS', currentPhase: 2, assessmentPassed: true, codeInterviewPassed: false, qBotPassed: false, createdAt: new Date() },
-  { id: '2', title: 'Backend Engineer Screening', mentor: 'Jane Smith', status: 'COMPLETED', currentPhase: 4, assessmentPassed: true, codeInterviewPassed: true, qBotPassed: true, createdAt: new Date() },
-  { id: '3', title: 'Full-Stack Developer Screening', mentor: 'Mike Johnson', status: 'NOT_STARTED', currentPhase: 0, assessmentPassed: false, codeInterviewPassed: false, qBotPassed: false, createdAt: new Date() },
-  { id: '4', title: 'DevOps Screening', mentor: 'Sarah Wilson', status: 'FAILED', currentPhase: 1, assessmentPassed: false, codeInterviewPassed: false, qBotPassed: false, createdAt: new Date() },
-];
 
 export default function ScreeningDashboardPage() {
   const navigate = useNavigate();
+  const { data: screenings, isLoading } = useScreenings();
 
   const statusColors: Record<string, string> = {
     NOT_STARTED: 'bg-muted text-muted-foreground',
@@ -27,17 +22,21 @@ export default function ScreeningDashboardPage() {
 
   const columns = [
     { key: 'title', label: 'Screening', sortable: true },
-    { key: 'mentor', label: 'Mentor' },
+    {
+      key: 'mentor',
+      label: 'Mentor',
+      render: (s: Screening) => <span className="text-sm">{s.mentor ? `${s.mentor.firstName} ${s.mentor.lastName}` : s.mentor_id}</span>,
+    },
     {
       key: 'status',
       label: 'Status',
-      render: (s: any) => <Badge className={statusColors[s.status]}>{s.status.replace('_', ' ')}</Badge>,
+      render: (s: Screening) => <Badge className={statusColors[s.status]}>{s.status.replace('_', ' ')}</Badge>,
     },
-    { key: 'currentPhase', label: 'Phase', render: (s: any) => <span className="text-sm">Phase {s.currentPhase}/4</span> },
+    { key: 'currentPhase', label: 'Phase', render: (s: Screening) => <span className="text-sm">Phase {s.currentPhase}/4</span> },
     {
       key: 'progress',
       label: 'Progress',
-      render: (s: any) => (
+      render: (s: Screening) => (
         <div className="flex gap-1.5">
           <span title="Assessment">{s.assessmentPassed ? <CheckCircle className="h-4 w-4 text-green-400" /> : <XCircle className="h-4 w-4 text-muted-foreground/40" />}</span>
           <span title="Code Interview">{s.codeInterviewPassed ? <CheckCircle className="h-4 w-4 text-green-400" /> : <XCircle className="h-4 w-4 text-muted-foreground/40" />}</span>
@@ -47,9 +46,25 @@ export default function ScreeningDashboardPage() {
     },
   ];
 
-  const passed = MOCK_SCREENINGS.filter(s => s.status === 'COMPLETED').length;
-  const failed = MOCK_SCREENINGS.filter(s => s.status === 'FAILED').length;
-  const pending = MOCK_SCREENINGS.filter(s => s.status === 'IN_PROGRESS' || s.status === 'NOT_STARTED').length;
+  const stats = useMemo(() => {
+    if (!screenings) return { passed: 0, failed: 0, pending: 0, total: 0 };
+    return {
+      total: screenings.length,
+      passed: screenings.filter(s => s.status === 'COMPLETED').length,
+      failed: screenings.filter(s => s.status === 'FAILED').length,
+      pending: screenings.filter(s => s.status === 'IN_PROGRESS' || s.status === 'NOT_STARTED').length,
+    };
+  }, [screenings]);
+
+  if (isLoading) {
+    return (
+      <div className="space-y-6">
+        <Skeleton className="h-8 w-64" />
+        <div className="grid grid-cols-4 gap-4">{[...Array(4)].map((_, i) => <Skeleton key={i} className="h-28 rounded-xl" />)}</div>
+        <Skeleton className="h-96 rounded-xl" />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -64,15 +79,15 @@ export default function ScreeningDashboardPage() {
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
-        <StatCard title="Total Screenings" value={MOCK_SCREENINGS.length} icon={ClipboardCheck} delay={0} />
-        <StatCard title="Passed" value={passed} icon={CheckCircle} delay={0.1} />
-        <StatCard title="Failed" value={failed} icon={XCircle} delay={0.2} />
-        <StatCard title="Pending" value={pending} icon={Clock} delay={0.3} />
+        <StatCard title="Total Screenings" value={stats.total} icon={ClipboardCheck} delay={0} />
+        <StatCard title="Passed" value={stats.passed} icon={CheckCircle} delay={0.1} />
+        <StatCard title="Failed" value={stats.failed} icon={XCircle} delay={0.2} />
+        <StatCard title="Pending" value={stats.pending} icon={Clock} delay={0.3} />
       </div>
 
       <DataTable
         columns={columns}
-        data={MOCK_SCREENINGS}
+        data={screenings || []}
         searchPlaceholder="Search screenings..."
         onRowClick={s => navigate(`/supervisor/screening/${s.id}`)}
         emptyMessage="No screenings created yet"

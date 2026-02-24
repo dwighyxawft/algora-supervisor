@@ -16,11 +16,13 @@ import {
   MasteryLevel,
   PaymentType,
   PresenceStatus,
+  ProjectDurationType,
   ProgramType,
   ProgressStatus,
   RootRole,
   ScreeningStatus,
   SupervisorRank,
+  UserSittedStatus,
 } from './models';
 
 // ==================== ACHIEVEMENT ====================
@@ -214,8 +216,10 @@ export type UpdateContactComplaintDto = Partial<CreateContactComplaintDto>;
 
 export interface CreateExamDto {
   title: string;
-  startTime: string;
-  endTime: string;
+  firstExamStartTime: string;
+  firstExamEndTime: string;
+  secondExamStartTime: string;
+  secondExamEndTime: string;
   duration: number;
   programBatchId: string;
   status: ExamStatus;
@@ -652,4 +656,34 @@ export interface InitializeOnboardPaymentDto {
 
 export interface VerifyPaymentDto {
   reference: string;
+}
+
+// ==================== PROJECT EXAM ====================
+
+export interface CreateProjectExamDto {
+  examId: string;
+  title: string;
+  description: string;
+  tasks: string[];
+  guide: string[];
+  start?: string;
+  end?: string;
+  duration_type?: ProjectDurationType;
+  duration: number;
+}
+
+export type UpdateProjectExamDto = Partial<CreateProjectExamDto>;
+
+export interface SubmitProjectDto {
+  examId: string;
+  link?: string;
+}
+
+export interface ReviewProjectSubmissionDto {
+  markGiven?: number;
+  passed?: boolean;
+}
+
+export interface UpdateProjectSubmissionStatusDto {
+  status: UserSittedStatus;
 }

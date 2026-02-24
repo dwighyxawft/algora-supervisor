@@ -438,3 +438,28 @@ export const WorkSampleRoutes = {
   findOne:      (id: string) => url(`work-sample/${id}`),             // GET
   remove:       (id: string) => url(`work-sample/${id}`),             // DELETE
 } as const;
+
+// ==================== PROJECT EXAM ====================
+export const ProjectExamRoutes = {
+  create:              () => url('project-exams'),                                  // POST
+  findAll:             () => url('project-exams'),                                  // GET
+  findOne:             (id: string) => url(`project-exams/${id}`),                  // GET
+  findByExam:          (examId: string) => url(`project-exams/exam/${examId}`),     // GET
+  update:              (id: string) => url(`project-exams/${id}`),                  // PATCH
+  remove:              (id: string) => url(`project-exams/${id}`),                  // DELETE
+  submitProject:       (internId: string) => url(`project-exams/submit/${internId}`), // POST
+  getInternSubmissions:(internId: string) => url(`project-exams/submissions/intern/${internId}`), // GET
+  reviewSubmission:    (submissionId: string) => url(`project-exams/review/${submissionId}`),     // PATCH
+  updateSubmissionStatus: (submissionId: string) => url(`project-exams/status/${submissionId}`),  // PATCH
+  getExamSubmissions:  (examId: string) => url(`project-exams/submissions/exam/${examId}`),       // GET
+  getSubmission:       (id: string) => url(`project-exams/submission/${id}`),       // GET
+} as const;
+
+// ==================== SCREENING ====================
+export const ScreeningRoutes = {
+  create:  () => url('screening'),                              // POST
+  findAll: () => url('screening'),                              // GET
+  findOne: (id: string) => url(`screening/${id}`),              // GET
+  update:  (id: string) => url(`screening/${id}`),              // PATCH
+  remove:  (id: string) => url(`screening/${id}`),              // DELETE
+} as const;

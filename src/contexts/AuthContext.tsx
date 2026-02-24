@@ -1,5 +1,7 @@
 import React, { createContext, useContext, useState, useCallback, useEffect } from 'react';
 import type { Supervisor } from '@/lib/api/models';
+import { AuthRoutes, SupervisorRoutes } from '@/lib/api/routes';
+import { apiClient } from '@/lib/api/client';
 
 interface AuthState {
   user: Supervisor | null;
@@ -49,16 +51,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const login = useCallback(async (email: string, password: string) => {
     setState(s => ({ ...s, isLoading: true }));
     try {
-      const res = await fetch(
-        `${import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000'}/auth/login/supervisor`,
-        {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ username: email, password }),
-        }
+      const data = await apiClient.post<{ token: string; user: Supervisor }>(
+        AuthRoutes.loginSupervisor(),
+        { username: email, password }
       );
-      if (!res.ok) throw new Error('Invalid credentials');
-      const data = await res.json();
       const { token, user } = data;
       localStorage.setItem(TOKEN_KEY, token);
       localStorage.setItem(USER_KEY, JSON.stringify(user));
@@ -69,34 +65,29 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
-  const logout = useCallback(() => {
+  const logout = useCallback(async () => {
+    try {
+      await apiClient.get(AuthRoutes.logoutSupervisor());
+    } catch {
+      // ignore logout errors
+    }
     localStorage.removeItem(TOKEN_KEY);
     localStorage.removeItem(USER_KEY);
     setState({ user: null, token: null, isAuthenticated: false, isLoading: false });
   }, []);
 
   const forgotPassword = useCallback(async (email: string) => {
-    const res = await fetch(
+    await apiClient.post(
       `${import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000'}/supervisor/forgot-password`,
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email }),
-      }
+      { email }
     );
-    if (!res.ok) throw new Error('Failed to send reset link');
   }, []);
 
   const resetPassword = useCallback(async (id: string, token: string, password: string) => {
-    const res = await fetch(
+    await apiClient.post(
       `${import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000'}/supervisor/reset-password/${id}?token=${token}`,
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ password }),
-      }
+      { password }
     );
-    if (!res.ok) throw new Error('Failed to reset password');
   }, []);
 
   const updateProfile = useCallback((data: Partial<Supervisor>) => {
