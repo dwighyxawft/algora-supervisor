@@ -1,27 +1,21 @@
-import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useMentors } from '@/hooks/use-api';
 import { DataTable } from '@/components/supervisor/DataTable';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Skeleton } from '@/components/ui/skeleton';
 import { Users } from 'lucide-react';
 import type { Mentor } from '@/lib/api/models';
 
-const MOCK_MENTORS: (Mentor & { performanceScore?: number })[] = [
-  { id: '1', firstName: 'John', lastName: 'Doe', email: 'john@algora.io', gender: 'male' as any, dateOfBirth: new Date(), isEmailVerified: true, country: 'USA', stateOrProvince: 'CA', performanceScore: 92, createdAt: new Date(), updatedAt: new Date() },
-  { id: '2', firstName: 'Jane', lastName: 'Smith', email: 'jane@algora.io', gender: 'female' as any, dateOfBirth: new Date(), isEmailVerified: true, country: 'UK', stateOrProvince: 'London', performanceScore: 88, createdAt: new Date(), updatedAt: new Date() },
-  { id: '3', firstName: 'Mike', lastName: 'Johnson', email: 'mike@algora.io', gender: 'male' as any, dateOfBirth: new Date(), isEmailVerified: false, country: 'Canada', stateOrProvince: 'ON', performanceScore: 75, createdAt: new Date(), updatedAt: new Date() },
-  { id: '4', firstName: 'Sarah', lastName: 'Wilson', email: 'sarah@algora.io', gender: 'female' as any, dateOfBirth: new Date(), isEmailVerified: true, country: 'Nigeria', stateOrProvince: 'Lagos', performanceScore: 95, createdAt: new Date(), updatedAt: new Date() },
-  { id: '5', firstName: 'Alex', lastName: 'Brown', email: 'alex@algora.io', gender: 'male' as any, dateOfBirth: new Date(), isEmailVerified: true, country: 'Germany', stateOrProvince: 'Berlin', performanceScore: 81, createdAt: new Date(), updatedAt: new Date() },
-];
-
 export default function MentorListPage() {
   const navigate = useNavigate();
+  const { data: mentors, isLoading } = useMentors();
 
   const columns = [
     {
       key: 'name',
       label: 'Mentor',
-      render: (m: any) => (
+      render: (m: Mentor) => (
         <div className="flex items-center gap-3">
           <Avatar className="h-8 w-8">
             <AvatarImage src={m.image} />
@@ -36,27 +30,41 @@ export default function MentorListPage() {
         </div>
       ),
     },
-    { key: 'country', label: 'Location', render: (m: any) => <span className="text-sm">{m.stateOrProvince}, {m.country}</span> },
+    { key: 'country', label: 'Location', render: (m: Mentor) => <span className="text-sm">{m.stateOrProvince}, {m.country}</span> },
     {
       key: 'isEmailVerified',
       label: 'Status',
-      render: (m: any) => (
+      render: (m: Mentor) => (
         <Badge variant={m.isEmailVerified ? 'default' : 'secondary'} className={m.isEmailVerified ? 'bg-green-500/10 text-green-400 border-green-500/20' : ''}>
           {m.isEmailVerified ? 'Verified' : 'Pending'}
         </Badge>
       ),
     },
     {
-      key: 'performanceScore',
-      label: 'Performance',
-      sortable: true,
-      render: (m: any) => {
-        const score = m.performanceScore;
-        const color = score >= 90 ? 'text-green-400' : score >= 80 ? 'text-accent' : score >= 70 ? 'text-yellow-400' : 'text-destructive';
-        return <span className={`text-sm font-semibold ${color}`}>{score}%</span>;
+      key: 'screening',
+      label: 'Screening',
+      render: (m: Mentor) => {
+        const status = m.screening?.status;
+        if (!status) return <span className="text-xs text-muted-foreground">N/A</span>;
+        const colors: Record<string, string> = {
+          COMPLETED: 'bg-green-500/10 text-green-400 border-green-500/20',
+          IN_PROGRESS: 'bg-primary/10 text-primary border-primary/20',
+          FAILED: 'bg-destructive/10 text-destructive border-destructive/20',
+          NOT_STARTED: 'bg-muted text-muted-foreground',
+        };
+        return <Badge className={colors[status] || ''}>{status.replace('_', ' ')}</Badge>;
       },
     },
   ];
+
+  if (isLoading) {
+    return (
+      <div className="space-y-6">
+        <Skeleton className="h-8 w-48" />
+        <Skeleton className="h-96 rounded-xl" />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -69,7 +77,7 @@ export default function MentorListPage() {
 
       <DataTable
         columns={columns}
-        data={MOCK_MENTORS}
+        data={mentors || []}
         searchPlaceholder="Search mentors..."
         onRowClick={(m) => navigate(`/supervisor/mentors/${m.id}`)}
         emptyMessage="No mentors assigned yet"

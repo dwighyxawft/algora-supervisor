@@ -1,32 +1,47 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '@/contexts/AuthContext';
+import { useCreateScreening, useMentors } from '@/hooks/use-api';
+import { ScreeningStatus } from '@/lib/api/models';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { ArrowLeft, ArrowRight, Plus, Trash2, CheckCircle } from 'lucide-react';
-import { useToast } from '@/hooks/use-toast';
+import { ArrowLeft, ArrowRight, Plus, Trash2, CheckCircle, Loader2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import type { CreateScreeningDto } from '@/lib/api/dto';
 
-const STEPS = ['Basic Info', 'Assessment', 'Code Challenge', 'Grading Rules'];
+const STEPS = ['Basic Info', 'Select Mentor', 'Assessment Config', 'Review & Create'];
 
 export default function CreateScreeningPage() {
   const [step, setStep] = useState(0);
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
-  const [duration, setDuration] = useState('60');
-  const [passCutoff, setPassCutoff] = useState('70');
-  const [questions, setQuestions] = useState([{ text: '', type: 'OBJECTIVE' }]);
-  const [tasks, setTasks] = useState([{ requirements: '' }]);
+  const [mentorId, setMentorId] = useState('');
+  const [assessmentRetries, setAssessmentRetries] = useState('2');
   const navigate = useNavigate();
-  const { toast } = useToast();
+  const { user } = useAuth();
+  const { data: mentors } = useMentors();
+  const createScreening = useCreateScreening();
 
   const handleSubmit = () => {
-    toast({ title: 'Screening created', description: `"${title}" has been created successfully.` });
-    navigate('/supervisor/screening');
+    if (!user) return;
+    const dto: CreateScreeningDto = {
+      supervisor_id: user.id,
+      title,
+      description,
+      status: ScreeningStatus.NOT_STARTED,
+      currentPhase: 0,
+      assessmentRetries: parseInt(assessmentRetries) || 2,
+    };
+    createScreening.mutate(dto, {
+      onSuccess: () => navigate('/supervisor/screening'),
+    });
   };
+
+  const selectedMentor = mentors?.find(m => m.id === mentorId);
 
   return (
     <div className="space-y-6 max-w-3xl mx-auto">
@@ -39,7 +54,6 @@ export default function CreateScreeningPage() {
         <p className="text-sm text-muted-foreground mt-1">Set up a new mentor screening test.</p>
       </div>
 
-      {/* Step indicator */}
       <div className="flex items-center gap-2">
         {STEPS.map((s, i) => (
           <div key={s} className="flex items-center gap-2">
@@ -58,13 +72,7 @@ export default function CreateScreeningPage() {
       </div>
 
       <AnimatePresence mode="wait">
-        <motion.div
-          key={step}
-          initial={{ opacity: 0, x: 20 }}
-          animate={{ opacity: 1, x: 0 }}
-          exit={{ opacity: 0, x: -20 }}
-          transition={{ duration: 0.2 }}
-        >
+        <motion.div key={step} initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} transition={{ duration: 0.2 }}>
           {step === 0 && (
             <Card className="glass-card">
               <CardHeader>
@@ -80,16 +88,6 @@ export default function CreateScreeningPage() {
                   <Label>Description</Label>
                   <Textarea value={description} onChange={e => setDescription(e.target.value)} placeholder="Describe the screening purpose..." rows={4} />
                 </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label>Duration (minutes)</Label>
-                    <Input type="number" value={duration} onChange={e => setDuration(e.target.value)} />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Pass Cutoff (%)</Label>
-                    <Input type="number" value={passCutoff} onChange={e => setPassCutoff(e.target.value)} />
-                  </div>
-                </div>
               </CardContent>
             </Card>
           )}
@@ -97,30 +95,27 @@ export default function CreateScreeningPage() {
           {step === 1 && (
             <Card className="glass-card">
               <CardHeader>
-                <CardTitle>Assessment Questions</CardTitle>
-                <CardDescription>Add theory and objective questions.</CardDescription>
+                <CardTitle>Select Mentor</CardTitle>
+                <CardDescription>Choose which mentor this screening is for.</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
-                {questions.map((q, i) => (
-                  <div key={i} className="flex gap-3 items-start">
-                    <div className="flex-1 space-y-2">
-                      <Input value={q.text} onChange={e => { const n = [...questions]; n[i].text = e.target.value; setQuestions(n); }} placeholder={`Question ${i + 1}`} />
-                    </div>
-                    <Select value={q.type} onValueChange={v => { const n = [...questions]; n[i].type = v; setQuestions(n); }}>
-                      <SelectTrigger className="w-32"><SelectValue /></SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="OBJECTIVE">Objective</SelectItem>
-                        <SelectItem value="THEORY">Theory</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    <Button variant="ghost" size="icon" onClick={() => setQuestions(questions.filter((_, j) => j !== i))} disabled={questions.length === 1}>
-                      <Trash2 className="h-4 w-4 text-destructive" />
-                    </Button>
+                <div className="space-y-2">
+                  <Label>Mentor</Label>
+                  <Select value={mentorId} onValueChange={setMentorId}>
+                    <SelectTrigger><SelectValue placeholder="Select a mentor..." /></SelectTrigger>
+                    <SelectContent>
+                      {mentors?.map(m => (
+                        <SelectItem key={m.id} value={m.id}>{m.firstName} {m.lastName} ({m.email})</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                {selectedMentor && (
+                  <div className="p-3 rounded-lg bg-muted/30 text-sm">
+                    <p className="font-medium">{selectedMentor.firstName} {selectedMentor.lastName}</p>
+                    <p className="text-muted-foreground text-xs">{selectedMentor.email} · {selectedMentor.country}</p>
                   </div>
-                ))}
-                <Button variant="outline" size="sm" onClick={() => setQuestions([...questions, { text: '', type: 'OBJECTIVE' }])} className="gap-2">
-                  <Plus className="h-4 w-4" /> Add Question
-                </Button>
+                )}
               </CardContent>
             </Card>
           )}
@@ -128,28 +123,14 @@ export default function CreateScreeningPage() {
           {step === 2 && (
             <Card className="glass-card">
               <CardHeader>
-                <CardTitle>Code Challenge Tasks</CardTitle>
-                <CardDescription>Define coding tasks for the screening.</CardDescription>
+                <CardTitle>Assessment Configuration</CardTitle>
+                <CardDescription>Configure retry limits and grading rules.</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
-                {tasks.map((t, i) => (
-                  <div key={i} className="flex gap-3 items-start">
-                    <div className="flex-1">
-                      <Textarea
-                        value={t.requirements}
-                        onChange={e => { const n = [...tasks]; n[i].requirements = e.target.value; setTasks(n); }}
-                        placeholder={`Task ${i + 1} requirements...`}
-                        rows={3}
-                      />
-                    </div>
-                    <Button variant="ghost" size="icon" onClick={() => setTasks(tasks.filter((_, j) => j !== i))} disabled={tasks.length === 1}>
-                      <Trash2 className="h-4 w-4 text-destructive" />
-                    </Button>
-                  </div>
-                ))}
-                <Button variant="outline" size="sm" onClick={() => setTasks([...tasks, { requirements: '' }])} className="gap-2">
-                  <Plus className="h-4 w-4" /> Add Task
-                </Button>
+                <div className="space-y-2">
+                  <Label>Assessment Retries Allowed</Label>
+                  <Input type="number" value={assessmentRetries} onChange={e => setAssessmentRetries(e.target.value)} min="0" max="5" />
+                </div>
               </CardContent>
             </Card>
           )}
@@ -157,33 +138,27 @@ export default function CreateScreeningPage() {
           {step === 3 && (
             <Card className="glass-card">
               <CardHeader>
-                <CardTitle>Grading Rules</CardTitle>
-                <CardDescription>Configure auto-grading and passing criteria.</CardDescription>
+                <CardTitle>Review & Create</CardTitle>
+                <CardDescription>Review the screening details before creating.</CardDescription>
               </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="space-y-2">
-                  <Label>Score Per Question</Label>
-                  <Input type="number" defaultValue="10" />
-                </div>
-                <div className="space-y-2">
-                  <Label>Auto-grade Objective Questions</Label>
-                  <Select defaultValue="yes">
-                    <SelectTrigger><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="yes">Yes</SelectItem>
-                      <SelectItem value="no">No</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-2">
-                  <Label>Require Manual Code Review</Label>
-                  <Select defaultValue="yes">
-                    <SelectTrigger><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="yes">Yes</SelectItem>
-                      <SelectItem value="no">No</SelectItem>
-                    </SelectContent>
-                  </Select>
+              <CardContent className="space-y-3">
+                <div className="grid grid-cols-2 gap-4 text-sm">
+                  <div>
+                    <p className="text-muted-foreground text-xs">Title</p>
+                    <p className="font-medium">{title || '—'}</p>
+                  </div>
+                  <div>
+                    <p className="text-muted-foreground text-xs">Mentor</p>
+                    <p className="font-medium">{selectedMentor ? `${selectedMentor.firstName} ${selectedMentor.lastName}` : '—'}</p>
+                  </div>
+                  <div>
+                    <p className="text-muted-foreground text-xs">Description</p>
+                    <p className="font-medium">{description || '—'}</p>
+                  </div>
+                  <div>
+                    <p className="text-muted-foreground text-xs">Retries</p>
+                    <p className="font-medium">{assessmentRetries}</p>
+                  </div>
                 </div>
               </CardContent>
             </Card>
@@ -200,7 +175,8 @@ export default function CreateScreeningPage() {
             Next <ArrowRight className="h-4 w-4 ml-2" />
           </Button>
         ) : (
-          <Button onClick={handleSubmit} className="gradient-primary">
+          <Button onClick={handleSubmit} className="gradient-primary" disabled={createScreening.isPending || !title}>
+            {createScreening.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
             <CheckCircle className="h-4 w-4 mr-2" /> Create Screening
           </Button>
         )}

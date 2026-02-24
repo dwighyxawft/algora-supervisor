@@ -114,8 +114,20 @@ export enum DayOfWeek {
 
 export enum ExamStatus {
   NOT_STARTED = 'NOT_STARTED',
-  IN_PROGRESS = 'IN_PROGRESS',
+  ONGOING = 'ONGOING',
   COMPLETED = 'COMPLETED',
+}
+
+export enum ProjectDurationType {
+  Hours = 'Hours',
+  Days = 'Days',
+  Weeks = 'Weeks',
+}
+
+export enum UserSittedStatus {
+  Ongoing = 'Ongoing',
+  Submitted = 'Submitted',
+  Reviewed = 'Reviewed',
 }
 
 export enum PaymentType {
@@ -417,8 +429,10 @@ export interface ContactComplaint {
 export interface Exam {
   id: string;
   title: string;
-  startTime: Date;
-  endTime: Date;
+  firstExamStartTime: Date;
+  firstExamEndTime: Date;
+  secondExamStartTime: Date;
+  secondExamEndTime: Date;
   duration: number;
   programBatchId: string;
   group?: ProgramBatch;
@@ -427,8 +441,42 @@ export interface Exam {
   mentor?: Mentor;
   programId: string;
   program?: Program;
-  theory?: TheoryExam;
-  objective?: ObjectiveExam;
+  theory?: TheoryExam[];
+  objective?: ObjectiveExam[];
+  projectExam?: ProjectExam;
+  projectSubmissions?: ProjectExamSubmission[];
+  examAttendance?: ExamAttendance[];
+  isActive: boolean;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface ProjectExam {
+  id: string;
+  examId: string;
+  exam?: Exam;
+  title: string;
+  description: string;
+  tasks: string[];
+  guide: string[];
+  start?: Date;
+  end?: Date;
+  duration_type: ProjectDurationType;
+  duration: number;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface ProjectExamSubmission {
+  id: string;
+  examId: string;
+  exam?: Exam;
+  internId: string;
+  intern?: Intern;
+  link?: string;
+  markGiven?: number;
+  passed: boolean;
+  status: UserSittedStatus;
   createdAt: Date;
   updatedAt: Date;
 }

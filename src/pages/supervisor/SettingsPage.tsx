@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
+import { useUpdateSupervisorProfile, useUpdateSupervisorPassword } from '@/hooks/use-api';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -9,27 +10,37 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
-import { User, Lock, Bell, Shield, Loader2 } from 'lucide-react';
-import { useToast } from '@/hooks/use-toast';
+import { User, Lock, Bell, Loader2 } from 'lucide-react';
 import { motion } from 'framer-motion';
 
 export default function SettingsPage() {
   const { user, updateProfile } = useAuth();
-  const { toast } = useToast();
-  const [saving, setSaving] = useState(false);
+  const updateProfileMutation = useUpdateSupervisorProfile();
+  const updatePasswordMutation = useUpdateSupervisorPassword();
+
   const [firstName, setFirstName] = useState(user?.firstName || '');
   const [lastName, setLastName] = useState(user?.lastName || '');
   const [bio, setBio] = useState(user?.bio || '');
   const [phone, setPhone] = useState(user?.phoneNumber || '');
 
+  const [oldPassword, setOldPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+
   const initials = `${firstName?.[0] || ''}${lastName?.[0] || ''}`.toUpperCase();
 
-  const handleSaveProfile = async () => {
-    setSaving(true);
-    await new Promise(r => setTimeout(r, 800));
-    updateProfile({ firstName, lastName, bio, phoneNumber: phone } as any);
-    toast({ title: 'Profile updated', description: 'Your changes have been saved.' });
-    setSaving(false);
+  const handleSaveProfile = () => {
+    updateProfileMutation.mutate(
+      { firstName, lastName, bio, phoneNumber: phone },
+      { onSuccess: () => updateProfile({ firstName, lastName, bio, phoneNumber: phone } as any) }
+    );
+  };
+
+  const handleChangePassword = () => {
+    updatePasswordMutation.mutate(
+      { oldPassword, password: newPassword, confirmPassword },
+      { onSuccess: () => { setOldPassword(''); setNewPassword(''); setConfirmPassword(''); } }
+    );
   };
 
   return (
@@ -62,31 +73,17 @@ export default function SettingsPage() {
                   <div>
                     <p className="font-medium">{firstName} {lastName}</p>
                     <p className="text-sm text-muted-foreground">{user?.email}</p>
-                    <div className="flex gap-2 mt-1">
-                      <Badge variant="outline">{user?.rank || 'BRONZE'}</Badge>
-                    </div>
+                    <Badge variant="outline" className="mt-1">{user?.rank || 'BRONZE'}</Badge>
                   </div>
                 </div>
                 <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label>First Name</Label>
-                    <Input value={firstName} onChange={e => setFirstName(e.target.value)} />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Last Name</Label>
-                    <Input value={lastName} onChange={e => setLastName(e.target.value)} />
-                  </div>
+                  <div className="space-y-2"><Label>First Name</Label><Input value={firstName} onChange={e => setFirstName(e.target.value)} /></div>
+                  <div className="space-y-2"><Label>Last Name</Label><Input value={lastName} onChange={e => setLastName(e.target.value)} /></div>
                 </div>
-                <div className="space-y-2">
-                  <Label>Phone</Label>
-                  <Input value={phone} onChange={e => setPhone(e.target.value)} placeholder="+1 234 567 890" />
-                </div>
-                <div className="space-y-2">
-                  <Label>Bio</Label>
-                  <Textarea value={bio} onChange={e => setBio(e.target.value)} placeholder="Tell us about yourself..." rows={3} />
-                </div>
-                <Button onClick={handleSaveProfile} className="gradient-primary" disabled={saving}>
-                  {saving && <Loader2 className="h-4 w-4 mr-2 animate-spin" />} Save Changes
+                <div className="space-y-2"><Label>Phone</Label><Input value={phone} onChange={e => setPhone(e.target.value)} placeholder="+1 234 567 890" /></div>
+                <div className="space-y-2"><Label>Bio</Label><Textarea value={bio} onChange={e => setBio(e.target.value)} placeholder="Tell us about yourself..." rows={3} /></div>
+                <Button onClick={handleSaveProfile} className="gradient-primary" disabled={updateProfileMutation.isPending}>
+                  {updateProfileMutation.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />} Save Changes
                 </Button>
               </CardContent>
             </Card>
@@ -100,26 +97,17 @@ export default function SettingsPage() {
               <CardDescription>Update your account password.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <Label>Current Password</Label>
-                <Input type="password" placeholder="••••••••" />
-              </div>
-              <div className="space-y-2">
-                <Label>New Password</Label>
-                <Input type="password" placeholder="••••••••" />
-              </div>
-              <div className="space-y-2">
-                <Label>Confirm New Password</Label>
-                <Input type="password" placeholder="••••••••" />
-              </div>
-              <Button className="gradient-primary">Update Password</Button>
+              <div className="space-y-2"><Label>Current Password</Label><Input type="password" value={oldPassword} onChange={e => setOldPassword(e.target.value)} placeholder="••••••••" /></div>
+              <div className="space-y-2"><Label>New Password</Label><Input type="password" value={newPassword} onChange={e => setNewPassword(e.target.value)} placeholder="••••••••" /></div>
+              <div className="space-y-2"><Label>Confirm New Password</Label><Input type="password" value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} placeholder="••••••••" /></div>
+              <Button className="gradient-primary" onClick={handleChangePassword} disabled={updatePasswordMutation.isPending || !oldPassword || !newPassword || newPassword !== confirmPassword}>
+                {updatePasswordMutation.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />} Update Password
+              </Button>
             </CardContent>
           </Card>
 
           <Card className="glass-card">
-            <CardHeader>
-              <CardTitle className="text-lg">Security</CardTitle>
-            </CardHeader>
+            <CardHeader><CardTitle className="text-lg">Security</CardTitle></CardHeader>
             <CardContent className="space-y-4">
               <div className="flex items-center justify-between">
                 <div>
