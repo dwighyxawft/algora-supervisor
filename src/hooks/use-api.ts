@@ -5,6 +5,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   mentorService,
+  internService,
   screeningService,
   complaintService,
   notificationService,
@@ -16,6 +17,10 @@ import {
   qbotService,
   workSampleService,
   projectExamService,
+  examService,
+  scheduleService,
+  onboardingService,
+  challengeService,
 } from '@/lib/api/services';
 import type {
   CreateScreeningDto,
@@ -23,6 +28,9 @@ import type {
   UpdateContactComplaintDto,
   UpdateSupervisorDto,
   CompleteReviewDto,
+  CreateNotifyDto,
+  ReviewProjectSubmissionDto,
+  UpdateProjectSubmissionStatusDto,
 } from '@/lib/api/dto';
 import { useToast } from '@/hooks/use-toast';
 
@@ -33,6 +41,15 @@ export function useMentors() {
 
 export function useMentor(id: string) {
   return useQuery({ queryKey: ['mentors', id], queryFn: () => mentorService.findOne(id), enabled: !!id });
+}
+
+// ==================== INTERNS ====================
+export function useInterns() {
+  return useQuery({ queryKey: ['interns'], queryFn: internService.findAll });
+}
+
+export function useIntern(id: string) {
+  return useQuery({ queryKey: ['interns', id], queryFn: () => internService.findOne(id), enabled: !!id });
 }
 
 // ==================== SCREENINGS ====================
@@ -67,11 +84,17 @@ export function useComplaints() {
   return useQuery({ queryKey: ['complaints'], queryFn: complaintService.findAll });
 }
 
+export function useComplaint(id: string) {
+  return useQuery({ queryKey: ['complaints', id], queryFn: () => complaintService.findOne(id), enabled: !!id });
+}
+
 export function useUpdateComplaint() {
   const qc = useQueryClient();
+  const { toast } = useToast();
   return useMutation({
     mutationFn: ({ id, data }: { id: string; data: UpdateContactComplaintDto }) => complaintService.update(id, data),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['complaints'] }),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['complaints'] }); toast({ title: 'Complaint updated' }); },
+    onError: (e: Error) => toast({ title: 'Error', description: e.message, variant: 'destructive' }),
   });
 }
 
@@ -84,6 +107,24 @@ export function useMarkNotificationRead() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (id: string) => notificationService.markAsRead(id),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['notifications'] }),
+  });
+}
+
+export function useCreateNotification() {
+  const qc = useQueryClient();
+  const { toast } = useToast();
+  return useMutation({
+    mutationFn: (data: CreateNotifyDto) => notificationService.create(data),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['notifications'] }); toast({ title: 'Notification sent' }); },
+    onError: (e: Error) => toast({ title: 'Error', description: e.message, variant: 'destructive' }),
+  });
+}
+
+export function useDeleteNotification() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => notificationService.remove(id),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['notifications'] }),
   });
 }
@@ -144,6 +185,11 @@ export function useCompleteReview() {
   });
 }
 
+// ==================== EXAMS ====================
+export function useExams() {
+  return useQuery({ queryKey: ['exams'], queryFn: examService.findAll });
+}
+
 // ==================== PROJECT EXAMS ====================
 export function useProjectExams() {
   return useQuery({ queryKey: ['projectExams'], queryFn: projectExamService.findAll });
@@ -155,4 +201,47 @@ export function useProjectExamSubmissions(examId: string) {
     queryFn: () => projectExamService.getExamSubmissions(examId),
     enabled: !!examId,
   });
+}
+
+export function useReviewProjectSubmission() {
+  const qc = useQueryClient();
+  const { toast } = useToast();
+  return useMutation({
+    mutationFn: ({ submissionId, data }: { submissionId: string; data: ReviewProjectSubmissionDto }) =>
+      projectExamService.reviewSubmission(submissionId, data),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['projectExamSubmissions'] }); toast({ title: 'Submission reviewed' }); },
+    onError: (e: Error) => toast({ title: 'Error', description: e.message, variant: 'destructive' }),
+  });
+}
+
+export function useUpdateProjectSubmissionStatus() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ submissionId, data }: { submissionId: string; data: UpdateProjectSubmissionStatusDto }) =>
+      projectExamService.updateSubmissionStatus(submissionId, data),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['projectExamSubmissions'] }),
+  });
+}
+
+// ==================== SCHEDULES ====================
+export function useSchedules() {
+  return useQuery({ queryKey: ['schedules'], queryFn: scheduleService.findAll });
+}
+
+// ==================== ONBOARDING ====================
+export function useOnboardings() {
+  return useQuery({ queryKey: ['onboardings'], queryFn: onboardingService.findAll });
+}
+
+export function useInternOnboardings(internId: string) {
+  return useQuery({
+    queryKey: ['onboardings', internId],
+    queryFn: () => onboardingService.findForIntern(internId),
+    enabled: !!internId,
+  });
+}
+
+// ==================== CHALLENGES ====================
+export function useChallenges() {
+  return useQuery({ queryKey: ['challenges'], queryFn: challengeService.findAll });
 }

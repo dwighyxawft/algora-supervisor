@@ -1,14 +1,16 @@
-import { useComplaints, useUpdateComplaint } from '@/hooks/use-api';
+import { useNavigate } from 'react-router-dom';
+import { useComplaints } from '@/hooks/use-api';
 import { DataTable } from '@/components/supervisor/DataTable';
 import { StatCard } from '@/components/supervisor/StatCard';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { MessageSquareWarning, CheckCircle, Clock, ArrowUpRight } from 'lucide-react';
+import { MessageSquareWarning, CheckCircle, Clock } from 'lucide-react';
 import { useState, useMemo } from 'react';
 import type { ContactComplaint } from '@/lib/api/models';
 
 export default function ComplaintsPage() {
+  const navigate = useNavigate();
   const { data: complaints, isLoading } = useComplaints();
   const [statusFilter, setStatusFilter] = useState<string>('all');
 
@@ -30,7 +32,7 @@ export default function ComplaintsPage() {
       label: 'From',
       render: (c: ContactComplaint) => (
         <span className="text-sm">
-          {c.intern ? `Intern - ${c.intern.firstName}` : c.mentor ? `Mentor - ${c.mentor.firstName}` : 'Unknown'}
+          {c.intern ? `Intern — ${c.intern.firstName}` : c.mentor ? `Mentor — ${c.mentor.firstName}` : 'Unknown'}
         </span>
       ),
     },
@@ -60,7 +62,7 @@ export default function ComplaintsPage() {
     return (
       <div className="space-y-6">
         <Skeleton className="h-8 w-48" />
-        <div className="grid grid-cols-4 gap-4">{[...Array(4)].map((_, i) => <Skeleton key={i} className="h-28 rounded-xl" />)}</div>
+        <div className="grid grid-cols-3 gap-4">{[...Array(3)].map((_, i) => <Skeleton key={i} className="h-28 rounded-xl" />)}</div>
         <Skeleton className="h-96 rounded-xl" />
       </div>
     );
@@ -83,6 +85,7 @@ export default function ComplaintsPage() {
         columns={columns}
         data={filtered}
         searchPlaceholder="Search complaints..."
+        onRowClick={(c) => navigate(`/supervisor/complaints/${c.id}`)}
         emptyMessage="No complaints found"
         emptyIcon={<MessageSquareWarning className="h-8 w-8" />}
         filters={
