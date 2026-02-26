@@ -7,7 +7,8 @@ import {
   mentorService,
   internService,
   screeningService,
-  complaintService,
+  mentorComplaintService,
+  mentorReviewService,
   notificationService,
   programService,
   supervisorService,
@@ -18,9 +19,9 @@ import {
   workSampleService,
   projectExamService,
   examService,
-  scheduleService,
   onboardingService,
   challengeService,
+  batchService,
 } from '@/lib/api/services';
 import type {
   CreateScreeningDto,
@@ -31,12 +32,18 @@ import type {
   CreateNotifyDto,
   ReviewProjectSubmissionDto,
   UpdateProjectSubmissionStatusDto,
+  UpdateMentorComplaintDto,
 } from '@/lib/api/dto';
+import type { ComplaintStatus } from '@/lib/api/models';
 import { useToast } from '@/hooks/use-toast';
 
 // ==================== MENTORS ====================
-export function useMentors() {
-  return useQuery({ queryKey: ['mentors'], queryFn: mentorService.findAll });
+export function useSupervisorMentors(supervisorId: string) {
+  return useQuery({
+    queryKey: ['mentors', 'supervisor', supervisorId],
+    queryFn: () => mentorService.findBySupervisor(supervisorId),
+    enabled: !!supervisorId,
+  });
 }
 
 export function useMentor(id: string) {
@@ -44,10 +51,6 @@ export function useMentor(id: string) {
 }
 
 // ==================== INTERNS ====================
-export function useInterns() {
-  return useQuery({ queryKey: ['interns'], queryFn: internService.findAll });
-}
-
 export function useIntern(id: string) {
   return useQuery({ queryKey: ['interns', id], queryFn: () => internService.findOne(id), enabled: !!id });
 }
@@ -79,22 +82,31 @@ export function useUpdateScreening() {
   });
 }
 
-// ==================== COMPLAINTS ====================
-export function useComplaints() {
-  return useQuery({ queryKey: ['complaints'], queryFn: complaintService.findAll });
+// ==================== MENTOR COMPLAINTS ====================
+export function useMentorComplaints(supervisorId: string) {
+  return useQuery({
+    queryKey: ['mentorComplaints', supervisorId],
+    queryFn: () => mentorComplaintService.findBySupervisor(supervisorId),
+    enabled: !!supervisorId,
+  });
 }
 
-export function useComplaint(id: string) {
-  return useQuery({ queryKey: ['complaints', id], queryFn: () => complaintService.findOne(id), enabled: !!id });
-}
-
-export function useUpdateComplaint() {
+export function useUpdateMentorComplaint() {
   const qc = useQueryClient();
   const { toast } = useToast();
   return useMutation({
-    mutationFn: ({ id, data }: { id: string; data: UpdateContactComplaintDto }) => complaintService.update(id, data),
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ['complaints'] }); toast({ title: 'Complaint updated' }); },
+    mutationFn: ({ id, data }: { id: string; data: UpdateMentorComplaintDto }) => mentorComplaintService.update(id, data),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['mentorComplaints'] }); toast({ title: 'Complaint updated' }); },
     onError: (e: Error) => toast({ title: 'Error', description: e.message, variant: 'destructive' }),
+  });
+}
+
+// ==================== MENTOR REVIEWS ====================
+export function useMentorReviews(mentorId: string) {
+  return useQuery({
+    queryKey: ['mentorReviews', mentorId],
+    queryFn: () => mentorReviewService.findByMentor(mentorId),
+    enabled: !!mentorId,
   });
 }
 
@@ -111,16 +123,6 @@ export function useMarkNotificationRead() {
   });
 }
 
-export function useCreateNotification() {
-  const qc = useQueryClient();
-  const { toast } = useToast();
-  return useMutation({
-    mutationFn: (data: CreateNotifyDto) => notificationService.create(data),
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ['notifications'] }); toast({ title: 'Notification sent' }); },
-    onError: (e: Error) => toast({ title: 'Error', description: e.message, variant: 'destructive' }),
-  });
-}
-
 export function useDeleteNotification() {
   const qc = useQueryClient();
   return useMutation({
@@ -132,6 +134,32 @@ export function useDeleteNotification() {
 // ==================== PROGRAMS ====================
 export function usePrograms() {
   return useQuery({ queryKey: ['programs'], queryFn: programService.findAll });
+}
+
+export function useProgram(id: string) {
+  return useQuery({ queryKey: ['programs', id], queryFn: () => programService.findOne(id), enabled: !!id });
+}
+
+// ==================== PROGRAM BATCHES ====================
+export function useProgramBatches(programId: string) {
+  return useQuery({
+    queryKey: ['batches', programId],
+    queryFn: () => batchService.findForProgram(programId),
+    enabled: !!programId,
+  });
+}
+
+export function useBatch(id: string) {
+  return useQuery({ queryKey: ['batches', 'detail', id], queryFn: () => batchService.findOne(id), enabled: !!id });
+}
+
+// ==================== ONBOARDING ====================
+export function useBatchOnboardings(programId: string, batchId: string) {
+  return useQuery({
+    queryKey: ['onboardings', programId, batchId],
+    queryFn: () => onboardingService.findForProgramAndBatch(programId, batchId),
+    enabled: !!programId && !!batchId,
+  });
 }
 
 // ==================== SUPERVISOR PROFILE ====================
@@ -220,24 +248,6 @@ export function useUpdateProjectSubmissionStatus() {
     mutationFn: ({ submissionId, data }: { submissionId: string; data: UpdateProjectSubmissionStatusDto }) =>
       projectExamService.updateSubmissionStatus(submissionId, data),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['projectExamSubmissions'] }),
-  });
-}
-
-// ==================== SCHEDULES ====================
-export function useSchedules() {
-  return useQuery({ queryKey: ['schedules'], queryFn: scheduleService.findAll });
-}
-
-// ==================== ONBOARDING ====================
-export function useOnboardings() {
-  return useQuery({ queryKey: ['onboardings'], queryFn: onboardingService.findAll });
-}
-
-export function useInternOnboardings(internId: string) {
-  return useQuery({
-    queryKey: ['onboardings', internId],
-    queryFn: () => onboardingService.findForIntern(internId),
-    enabled: !!internId,
   });
 }
 

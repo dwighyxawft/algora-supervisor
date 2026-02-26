@@ -16,20 +16,16 @@ import ResetPasswordPage from "@/pages/supervisor/ResetPasswordPage";
 import DashboardPage from "@/pages/supervisor/DashboardPage";
 import MentorListPage from "@/pages/supervisor/MentorListPage";
 import MentorProfilePage from "@/pages/supervisor/MentorProfilePage";
-import InternListPage from "@/pages/supervisor/InternListPage";
-import InternProfilePage from "@/pages/supervisor/InternProfilePage";
 import ScreeningDashboardPage from "@/pages/supervisor/ScreeningDashboardPage";
 import CreateScreeningPage from "@/pages/supervisor/CreateScreeningPage";
 import ScreeningReviewPage from "@/pages/supervisor/ScreeningReviewPage";
-import MeetingsPage from "@/pages/supervisor/MeetingsPage";
 import ComplaintsPage from "@/pages/supervisor/ComplaintsPage";
 import ComplaintDetailPage from "@/pages/supervisor/ComplaintDetailPage";
 import ReviewsPage from "@/pages/supervisor/ReviewsPage";
-import AnalyticsPage from "@/pages/supervisor/AnalyticsPage";
-import TasksPage from "@/pages/supervisor/TasksPage";
 import SettingsPage from "@/pages/supervisor/SettingsPage";
 import ProjectSubmissionsPage from "@/pages/supervisor/ProjectSubmissionsPage";
-import NotificationsPage from "@/pages/supervisor/NotificationsPage";
+import ProgramDetailPage from "@/pages/supervisor/ProgramDetailPage";
+import BatchDetailPage from "@/pages/supervisor/BatchDetailPage";
 
 import NotFound from "./pages/NotFound";
 
@@ -56,20 +52,16 @@ const App = () => (
                 <Route path="/supervisor/dashboard" element={<DashboardPage />} />
                 <Route path="/supervisor/mentors" element={<MentorListPage />} />
                 <Route path="/supervisor/mentors/:id" element={<MentorProfilePage />} />
-                <Route path="/supervisor/interns" element={<InternListPage />} />
-                <Route path="/supervisor/interns/:id" element={<InternProfilePage />} />
                 <Route path="/supervisor/screening" element={<ScreeningDashboardPage />} />
                 <Route path="/supervisor/screening/create" element={<CreateScreeningPage />} />
                 <Route path="/supervisor/screening/:id" element={<ScreeningReviewPage />} />
-                <Route path="/supervisor/meetings" element={<MeetingsPage />} />
                 <Route path="/supervisor/complaints" element={<ComplaintsPage />} />
                 <Route path="/supervisor/complaints/:id" element={<ComplaintDetailPage />} />
                 <Route path="/supervisor/reviews" element={<ReviewsPage />} />
-                <Route path="/supervisor/analytics" element={<AnalyticsPage />} />
-                <Route path="/supervisor/tasks" element={<TasksPage />} />
-                <Route path="/supervisor/settings" element={<SettingsPage />} />
                 <Route path="/supervisor/projects" element={<ProjectSubmissionsPage />} />
-                <Route path="/supervisor/notifications" element={<NotificationsPage />} />
+                <Route path="/supervisor/programs/:id" element={<ProgramDetailPage />} />
+                <Route path="/supervisor/programs/:id/batches/:batchId" element={<BatchDetailPage />} />
+                <Route path="/supervisor/settings" element={<SettingsPage />} />
               </Route>
             </Route>
 

@@ -1,22 +1,25 @@
 import { useNavigate } from 'react-router-dom';
-import { useComplaints } from '@/hooks/use-api';
+import { useAuth } from '@/contexts/AuthContext';
+import { useMentorComplaints, useUpdateMentorComplaint } from '@/hooks/use-api';
 import { DataTable } from '@/components/supervisor/DataTable';
 import { StatCard } from '@/components/supervisor/StatCard';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { MessageSquareWarning, CheckCircle, Clock } from 'lucide-react';
+import { MessageSquareWarning, CheckCircle, Clock, XCircle } from 'lucide-react';
 import { useState, useMemo } from 'react';
-import type { ContactComplaint } from '@/lib/api/models';
+import type { MentorComplaint, ComplaintStatus } from '@/lib/api/models';
 
 export default function ComplaintsPage() {
   const navigate = useNavigate();
-  const { data: complaints, isLoading } = useComplaints();
+  const { user } = useAuth();
+  const { data: complaints, isLoading } = useMentorComplaints(user?.id || '');
   const [statusFilter, setStatusFilter] = useState<string>('all');
 
   const statusColors: Record<string, string> = {
-    open: 'bg-primary/10 text-primary border-primary/20',
-    closed: 'bg-green-500/10 text-green-400 border-green-500/20',
+    pending: 'bg-primary/10 text-primary border-primary/20',
+    resolved: 'bg-green-500/10 text-green-400 border-green-500/20',
+    rejected: 'bg-destructive/10 text-destructive border-destructive/20',
   };
 
   const filtered = useMemo(() => {
@@ -26,35 +29,41 @@ export default function ComplaintsPage() {
   }, [complaints, statusFilter]);
 
   const columns = [
-    { key: 'subject', label: 'Subject', sortable: true },
+    { key: 'title', label: 'Title', sortable: true },
     {
-      key: 'from',
-      label: 'From',
-      render: (c: ContactComplaint) => (
-        <span className="text-sm">
-          {c.intern ? `Intern — ${c.intern.firstName}` : c.mentor ? `Mentor — ${c.mentor.firstName}` : 'Unknown'}
-        </span>
+      key: 'mentor',
+      label: 'Mentor',
+      render: (c: MentorComplaint) => (
+        <span className="text-sm">{c.mentor ? `${c.mentor.firstName} ${c.mentor.lastName}` : '—'}</span>
+      ),
+    },
+    {
+      key: 'intern',
+      label: 'Filed By (Intern)',
+      render: (c: MentorComplaint) => (
+        <span className="text-sm">{c.intern ? `${c.intern.firstName} ${c.intern.lastName}` : '—'}</span>
       ),
     },
     {
       key: 'status',
       label: 'Status',
-      render: (c: ContactComplaint) => <Badge className={statusColors[c.status] || ''}>{c.status}</Badge>,
+      render: (c: MentorComplaint) => <Badge className={statusColors[c.status] || ''}>{c.status}</Badge>,
     },
     {
       key: 'createdAt',
       label: 'Date',
       sortable: true,
-      render: (c: ContactComplaint) => <span className="text-sm">{new Date(c.createdAt).toLocaleDateString()}</span>,
+      render: (c: MentorComplaint) => <span className="text-sm">{new Date(c.createdAt).toLocaleDateString()}</span>,
     },
   ];
 
   const stats = useMemo(() => {
-    if (!complaints) return { total: 0, open: 0, closed: 0 };
+    if (!complaints) return { total: 0, pending: 0, resolved: 0, rejected: 0 };
     return {
       total: complaints.length,
-      open: complaints.filter(c => c.status === 'open').length,
-      closed: complaints.filter(c => c.status === 'closed').length,
+      pending: complaints.filter(c => c.status === 'pending').length,
+      resolved: complaints.filter(c => c.status === 'resolved').length,
+      rejected: complaints.filter(c => c.status === 'rejected').length,
     };
   }, [complaints]);
 
@@ -62,7 +71,7 @@ export default function ComplaintsPage() {
     return (
       <div className="space-y-6">
         <Skeleton className="h-8 w-48" />
-        <div className="grid grid-cols-3 gap-4">{[...Array(3)].map((_, i) => <Skeleton key={i} className="h-28 rounded-xl" />)}</div>
+        <div className="grid grid-cols-4 gap-4">{[...Array(4)].map((_, i) => <Skeleton key={i} className="h-28 rounded-xl" />)}</div>
         <Skeleton className="h-96 rounded-xl" />
       </div>
     );
@@ -71,14 +80,15 @@ export default function ComplaintsPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold tracking-tight">Complaints</h1>
-        <p className="text-sm text-muted-foreground mt-1">Handle and resolve complaints from mentors and interns.</p>
+        <h1 className="text-2xl font-bold tracking-tight">Intern Complaints</h1>
+        <p className="text-sm text-muted-foreground mt-1">Complaints filed by interns against mentors under your supervision.</p>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
         <StatCard title="Total Complaints" value={stats.total} icon={MessageSquareWarning} delay={0} />
-        <StatCard title="Open" value={stats.open} icon={Clock} delay={0.1} />
-        <StatCard title="Closed" value={stats.closed} icon={CheckCircle} delay={0.2} />
+        <StatCard title="Pending" value={stats.pending} icon={Clock} delay={0.1} />
+        <StatCard title="Resolved" value={stats.resolved} icon={CheckCircle} delay={0.2} />
+        <StatCard title="Rejected" value={stats.rejected} icon={XCircle} delay={0.3} />
       </div>
 
       <DataTable
@@ -93,8 +103,9 @@ export default function ComplaintsPage() {
             <SelectTrigger className="w-36 h-9"><SelectValue placeholder="Status" /></SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All Status</SelectItem>
-              <SelectItem value="open">Open</SelectItem>
-              <SelectItem value="closed">Closed</SelectItem>
+              <SelectItem value="pending">Pending</SelectItem>
+              <SelectItem value="resolved">Resolved</SelectItem>
+              <SelectItem value="rejected">Rejected</SelectItem>
             </SelectContent>
           </Select>
         }

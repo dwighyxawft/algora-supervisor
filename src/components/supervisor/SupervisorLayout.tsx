@@ -4,9 +4,9 @@ import { useAuth } from '@/contexts/AuthContext';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import {
-  LayoutDashboard, Users, ClipboardCheck, Video, MessageSquareWarning,
-  Star, BarChart3, ListTodo, Settings, LogOut, ChevronLeft, ChevronRight,
-  Bell, Search, Shield, Menu, GraduationCap, FolderOpen, BellRing
+  LayoutDashboard, Users, ClipboardCheck, MessageSquareWarning,
+  Star, Settings, LogOut, ChevronLeft, ChevronRight,
+  Bell, Search, Shield, Menu, FolderOpen
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -21,15 +21,10 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip
 const NAV_ITEMS = [
   { label: 'Dashboard', icon: LayoutDashboard, path: '/supervisor/dashboard' },
   { label: 'Mentors', icon: Users, path: '/supervisor/mentors' },
-  { label: 'Interns', icon: GraduationCap, path: '/supervisor/interns' },
   { label: 'Screening', icon: ClipboardCheck, path: '/supervisor/screening' },
   { label: 'Projects', icon: FolderOpen, path: '/supervisor/projects' },
-  { label: 'Meetings', icon: Video, path: '/supervisor/meetings' },
   { label: 'Complaints', icon: MessageSquareWarning, path: '/supervisor/complaints' },
   { label: 'Reviews', icon: Star, path: '/supervisor/reviews' },
-  { label: 'Analytics', icon: BarChart3, path: '/supervisor/analytics' },
-  { label: 'Notifications', icon: BellRing, path: '/supervisor/notifications' },
-  { label: 'Tasks & Notices', icon: ListTodo, path: '/supervisor/tasks' },
   { label: 'Settings', icon: Settings, path: '/supervisor/settings' },
 ];
 

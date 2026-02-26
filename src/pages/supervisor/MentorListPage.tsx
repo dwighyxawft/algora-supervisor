@@ -1,5 +1,6 @@
 import { useNavigate } from 'react-router-dom';
-import { useMentors } from '@/hooks/use-api';
+import { useAuth } from '@/contexts/AuthContext';
+import { useSupervisorMentors } from '@/hooks/use-api';
 import { DataTable } from '@/components/supervisor/DataTable';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -9,7 +10,8 @@ import type { Mentor } from '@/lib/api/models';
 
 export default function MentorListPage() {
   const navigate = useNavigate();
-  const { data: mentors, isLoading } = useMentors();
+  const { user } = useAuth();
+  const { data: mentors, isLoading } = useSupervisorMentors(user?.id || '');
 
   const columns = [
     {
@@ -45,7 +47,7 @@ export default function MentorListPage() {
       label: 'Screening',
       render: (m: Mentor) => {
         const status = m.screening?.status;
-        if (!status) return <span className="text-xs text-muted-foreground">N/A</span>;
+        if (!status) return <span className="text-xs text-muted-foreground">Not Started</span>;
         const colors: Record<string, string> = {
           COMPLETED: 'bg-green-500/10 text-green-400 border-green-500/20',
           IN_PROGRESS: 'bg-primary/10 text-primary border-primary/20',
@@ -68,11 +70,9 @@ export default function MentorListPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">Mentors</h1>
-          <p className="text-sm text-muted-foreground mt-1">Manage and monitor your assigned mentors.</p>
-        </div>
+      <div>
+        <h1 className="text-2xl font-bold tracking-tight">My Mentors</h1>
+        <p className="text-sm text-muted-foreground mt-1">Mentors assigned to you for management and oversight.</p>
       </div>
 
       <DataTable

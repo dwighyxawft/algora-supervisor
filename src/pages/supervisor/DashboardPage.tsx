@@ -1,11 +1,12 @@
 import { useAuth } from '@/contexts/AuthContext';
-import { useMentors, useScreenings, useComplaints, useNotifications } from '@/hooks/use-api';
+import { useSupervisorMentors, useMentorComplaints, useNotifications, useScreenings } from '@/hooks/use-api';
 import { StatCard } from '@/components/supervisor/StatCard';
-import { Users, ClipboardCheck, Video, MessageSquareWarning, BarChart3, Star, Activity, TrendingUp } from 'lucide-react';
+import { Users, ClipboardCheck, MessageSquareWarning, BarChart3, TrendingUp, Activity, Star, Bell, Phone } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { motion } from 'framer-motion';
-import { BarChart, Bar, XAxis, YAxis, Tooltip as RechartsTooltip, ResponsiveContainer, LineChart, Line, PieChart, Pie, Cell } from 'recharts';
+import { BarChart, Bar, XAxis, YAxis, Tooltip as RechartsTooltip, ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line } from 'recharts';
 import { useMemo } from 'react';
 
 const tooltipStyle = {
@@ -19,10 +20,12 @@ const tooltipStyle = {
 
 export default function DashboardPage() {
   const { user } = useAuth();
-  const { data: mentors, isLoading: mentorsLoading } = useMentors();
+  const { data: mentors, isLoading: mentorsLoading } = useSupervisorMentors(user?.id || '');
   const { data: screenings, isLoading: screeningsLoading } = useScreenings();
-  const { data: complaints, isLoading: complaintsLoading } = useComplaints();
+  const { data: complaints, isLoading: complaintsLoading } = useMentorComplaints(user?.id || '');
   const { data: notifications } = useNotifications();
+
+  const isSaturday = new Date().getDay() === 6;
 
   const screeningStats = useMemo(() => {
     if (!screenings) return { passed: 0, failed: 0, pending: 0, total: 0 };
@@ -32,7 +35,7 @@ export default function DashboardPage() {
     return { passed, failed, pending, total: screenings.length };
   }, [screenings]);
 
-  const openComplaints = useMemo(() => complaints?.filter(c => c.status === 'open').length ?? 0, [complaints]);
+  const pendingComplaints = useMemo(() => complaints?.filter(c => c.status === 'pending').length ?? 0, [complaints]);
 
   const screeningPieData = useMemo(() => [
     { name: 'Passed', value: screeningStats.passed || 1, color: 'hsl(142, 76%, 36%)' },
@@ -40,7 +43,6 @@ export default function DashboardPage() {
     { name: 'Pending', value: screeningStats.pending || 1, color: 'hsl(38, 92%, 50%)' },
   ], [screeningStats]);
 
-  // Generate activity data from mentors creation dates
   const activityData = useMemo(() => {
     const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'];
     return months.map((month, i) => ({
@@ -49,14 +51,6 @@ export default function DashboardPage() {
       screenings: screenings ? Math.min(screenings.length + i, screenings.length + 5) : 0,
     }));
   }, [mentors, screenings]);
-
-  const complaintData = useMemo(() => {
-    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'];
-    return months.map((month) => ({
-      month,
-      count: complaints ? Math.max(1, Math.floor(complaints.length / 6 + Math.random() * 3)) : 0,
-    }));
-  }, [complaints]);
 
   const recentNotifications = useMemo(() =>
     (notifications || []).slice(0, 5).map(n => ({
@@ -82,25 +76,35 @@ export default function DashboardPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <motion.h1 initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} className="text-2xl font-bold tracking-tight">
-          Welcome back, {user?.firstName || 'Supervisor'}
-        </motion.h1>
-        <p className="text-sm text-muted-foreground mt-1">Here's your mentor management overview.</p>
+      <div className="flex items-center justify-between">
+        <div>
+          <motion.h1 initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} className="text-2xl font-bold tracking-tight">
+            Welcome back, {user?.firstName || 'Supervisor'}
+          </motion.h1>
+          <p className="text-sm text-muted-foreground mt-1">Here's your mentor management overview.</p>
+        </div>
+        {isSaturday && (
+          <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }}>
+            <Button className="gradient-primary gap-2" size="lg">
+              <Phone className="h-5 w-5" />
+              Start Weekly Meeting
+            </Button>
+          </motion.div>
+        )}
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard title="Assigned Mentors" value={mentors?.length ?? 0} icon={Users} delay={0} />
+        <StatCard title="My Mentors" value={mentors?.length ?? 0} icon={Users} delay={0} />
         <StatCard title="Pending Screenings" value={screeningStats.pending} icon={ClipboardCheck} delay={0.1} />
-        <StatCard title="Open Complaints" value={openComplaints} icon={MessageSquareWarning} delay={0.2} />
+        <StatCard title="Pending Complaints" value={pendingComplaints} icon={MessageSquareWarning} delay={0.2} />
         <StatCard title="Total Screenings" value={screeningStats.total} icon={BarChart3} delay={0.3} />
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard title="Screening Pass Rate" value={screeningStats.total ? `${Math.round((screeningStats.passed / screeningStats.total) * 100)}%` : '0%'} icon={TrendingUp} delay={0.4} />
-        <StatCard title="Active Mentors" value={mentors?.filter(m => m.isEmailVerified).length ?? 0} icon={Activity} delay={0.5} />
-        <StatCard title="Mentor Rating" value={user?.rank || 'N/A'} icon={Star} delay={0.6} />
-        <StatCard title="Unread Notifications" value={notifications?.filter(n => !n.isRead).length ?? 0} icon={Video} delay={0.7} />
+        <StatCard title="Verified Mentors" value={mentors?.filter(m => m.isEmailVerified).length ?? 0} icon={Activity} delay={0.5} />
+        <StatCard title="Supervisor Rank" value={user?.rank || 'N/A'} icon={Star} delay={0.6} />
+        <StatCard title="Unread Notifications" value={notifications?.filter(n => !n.isRead).length ?? 0} icon={Bell} delay={0.7} />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
@@ -150,47 +154,28 @@ export default function DashboardPage() {
         </motion.div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.6 }}>
-          <Card className="glass-card">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">Complaint Frequency</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <ResponsiveContainer width="100%" height={200}>
-                <LineChart data={complaintData}>
-                  <XAxis dataKey="month" stroke="hsl(215, 20%, 55%)" fontSize={12} tickLine={false} axisLine={false} />
-                  <YAxis stroke="hsl(215, 20%, 55%)" fontSize={12} tickLine={false} axisLine={false} />
-                  <Line type="monotone" dataKey="count" stroke="hsl(217, 91%, 53%)" strokeWidth={2} dot={{ fill: 'hsl(217, 91%, 53%)', r: 4 }} />
-                </LineChart>
-              </ResponsiveContainer>
-            </CardContent>
-          </Card>
-        </motion.div>
-
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.7 }}>
-          <Card className="glass-card">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">Recent Activity</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-3">
-                {recentNotifications.length > 0 ? recentNotifications.map(item => (
-                  <div key={item.id} className="flex items-start gap-3 p-2 rounded-lg hover:bg-muted/30 transition-colors">
-                    <div className="w-1.5 h-1.5 rounded-full bg-primary mt-2 flex-shrink-0" />
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm">{item.action}</p>
-                      <p className="text-xs text-muted-foreground">{item.detail} · {item.time}</p>
-                    </div>
+      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.7 }}>
+        <Card className="glass-card">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground">Recent Activity</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-3">
+              {recentNotifications.length > 0 ? recentNotifications.map(item => (
+                <div key={item.id} className="flex items-start gap-3 p-2 rounded-lg hover:bg-muted/30 transition-colors">
+                  <div className="w-1.5 h-1.5 rounded-full bg-primary mt-2 flex-shrink-0" />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm">{item.action}</p>
+                    <p className="text-xs text-muted-foreground">{item.detail} · {item.time}</p>
                   </div>
-                )) : (
-                  <p className="text-sm text-muted-foreground text-center py-4">No recent activity</p>
-                )}
-              </div>
-            </CardContent>
-          </Card>
-        </motion.div>
-      </div>
+                </div>
+              )) : (
+                <p className="text-sm text-muted-foreground text-center py-4">No recent activity</p>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      </motion.div>
     </div>
   );
 }

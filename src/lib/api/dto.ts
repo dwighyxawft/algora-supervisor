@@ -7,6 +7,7 @@ import {
   AssessmentStatus,
   AssessmentType,
   ClassworkType,
+  ComplaintStatus,
   DayOfWeek,
   ExamStatus,
   Gender,
@@ -686,4 +687,17 @@ export interface ReviewProjectSubmissionDto {
 
 export interface UpdateProjectSubmissionStatusDto {
   status: UserSittedStatus;
+}
+
+// ==================== MENTOR COMPLAINT ====================
+
+export interface InternComplaintOnMentorDto {
+  mentorId: string;
+  title: string;
+  description: string;
+  attachments?: string[];
+}
+
+export interface UpdateMentorComplaintDto {
+  status?: ComplaintStatus;
 }

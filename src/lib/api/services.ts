@@ -20,7 +20,7 @@ import {
   ProjectExamRoutes,
   ScreeningRoutes,
   InternRoutes,
-  ScheduleRoutes,
+  GroupRoutes,
   OnboardingRoutes,
 } from './routes';
 
@@ -43,8 +43,10 @@ import type {
   Qbot,
   DeleteResult,
   UpdateResult,
-  Schedule,
   InternProgramOnboarding,
+  MentorComplaint,
+  MentorReview,
+  ProgramBatch,
 } from './models';
 
 import type {
@@ -64,6 +66,7 @@ import type {
   ReviewProjectSubmissionDto,
   UpdateProjectSubmissionStatusDto,
   CreateNotifyDto,
+  UpdateMentorComplaintDto,
 } from './dto';
 
 export { BASE_URL } from './routes';
@@ -89,6 +92,7 @@ export const supervisorService = {
 // ==================== MENTORS ====================
 export const mentorService = {
   findAll: () => apiClient.get<Mentor[]>(MentorRoutes.findAll()),
+  findBySupervisor: (supervisorId: string) => apiClient.get<Mentor[]>(MentorRoutes.findBySupervisor(supervisorId)),
   findOne: (id: string) => apiClient.get<Mentor>(MentorRoutes.findOne(id)),
 };
 
@@ -128,7 +132,18 @@ export const codeInterviewService = {
   rejectAttempt: (id: string) => apiClient.patch<void>(CodingWorkspaceRoutes.rejectAttempt(id)),
 };
 
-// ==================== COMPLAINTS ====================
+// ==================== MENTOR COMPLAINTS ====================
+export const mentorComplaintService = {
+  findBySupervisor: (supervisorId: string) => apiClient.get<MentorComplaint[]>(MentorRoutes.getComplaintsBySupervisor(supervisorId)),
+  update: (complaintId: string, data: UpdateMentorComplaintDto) => apiClient.patch<MentorComplaint>(MentorRoutes.updateComplaint(complaintId), data),
+};
+
+// ==================== MENTOR REVIEWS ====================
+export const mentorReviewService = {
+  findByMentor: (mentorId: string) => apiClient.get<MentorReview[]>(MentorRoutes.getReviewsByMentor(mentorId)),
+};
+
+// ==================== CONTACT COMPLAINTS ====================
 export const complaintService = {
   findAll: () => apiClient.get<ContactComplaint[]>(ContactComplaintRoutes.findAll()),
   findOne: (id: string) => apiClient.get<ContactComplaint>(ContactComplaintRoutes.findOne(id)),
@@ -167,6 +182,20 @@ export const programService = {
   findOne: (id: string) => apiClient.get<Program>(ProgramRoutes.findOne(id)),
 };
 
+// ==================== PROGRAM BATCHES (GROUPS) ====================
+export const batchService = {
+  findForProgram: (programId: string) => apiClient.get<ProgramBatch[]>(GroupRoutes.findForProgram(programId)),
+  findOne: (id: string) => apiClient.get<ProgramBatch>(GroupRoutes.findOne(id)),
+};
+
+// ==================== ONBOARDING ====================
+export const onboardingService = {
+  findAll: () => apiClient.get<InternProgramOnboarding[]>(OnboardingRoutes.findAll()),
+  findForIntern: (internId: string) => apiClient.get<InternProgramOnboarding[]>(OnboardingRoutes.findForIntern(internId)),
+  findForProgramAndBatch: (programId: string, batchId: string) =>
+    apiClient.get<InternProgramOnboarding[]>(OnboardingRoutes.findForProgramAndBatch(programId, batchId)),
+};
+
 // ==================== CHALLENGES ====================
 export const challengeService = {
   findAll: () => apiClient.get<Challenge[]>(ChallengeRoutes.findAll()),
@@ -184,18 +213,6 @@ export const examService = {
   findOne: (id: string) => apiClient.get<Exam>(ExamRoutes.findOne(id)),
 };
 
-// ==================== SCHEDULES ====================
-export const scheduleService = {
-  findAll: () => apiClient.get<Schedule[]>(ScheduleRoutes.findAll()),
-  findOne: (id: string) => apiClient.get<Schedule>(ScheduleRoutes.findOne(id)),
-};
-
-// ==================== ONBOARDING ====================
-export const onboardingService = {
-  findAll: () => apiClient.get<InternProgramOnboarding[]>(OnboardingRoutes.findAll()),
-  findForIntern: (internId: string) => apiClient.get<InternProgramOnboarding[]>(OnboardingRoutes.findForIntern(internId)),
-};
-
 // ==================== PROJECT EXAM ====================
 export const projectExamService = {
   findAll: () => apiClient.get<ProjectExam[]>(ProjectExamRoutes.findAll()),
@@ -211,3 +228,6 @@ export const projectExamService = {
   updateSubmissionStatus: (submissionId: string, data: UpdateProjectSubmissionStatusDto) =>
     apiClient.patch<ProjectExamSubmission>(ProjectExamRoutes.updateSubmissionStatus(submissionId), data),
 };
+
+// ==================== SCREENING ====================
+export const screeningServiceAlt = screeningService;
