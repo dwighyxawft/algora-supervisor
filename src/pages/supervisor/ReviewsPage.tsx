@@ -1,4 +1,5 @@
-import { useMentors, useScreenings } from '@/hooks/use-api';
+import { useAuth } from '@/contexts/AuthContext';
+import { useSupervisorMentors, useScreenings, useMentorReviews } from '@/hooks/use-api';
 import { Badge } from '@/components/ui/badge';
 import { Star, ThumbsUp, ThumbsDown, TrendingUp } from 'lucide-react';
 import { StatCard } from '@/components/supervisor/StatCard';
@@ -6,10 +7,13 @@ import { DataTable } from '@/components/supervisor/DataTable';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import type { Mentor } from '@/lib/api/models';
 
 export default function ReviewsPage() {
-  const { data: mentors, isLoading: mentorsLoading } = useMentors();
+  const { user } = useAuth();
+  const navigate = useNavigate();
+  const { data: mentors, isLoading: mentorsLoading } = useSupervisorMentors(user?.id || '');
   const { data: screenings } = useScreenings();
 
   const reviewData = useMemo(() => {
@@ -100,7 +104,7 @@ export default function ReviewsPage() {
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold tracking-tight">Reviews & Performance</h1>
-        <p className="text-sm text-muted-foreground mt-1">Monitor mentor reviews and screening performance.</p>
+        <p className="text-sm text-muted-foreground mt-1">Monitor mentor screening performance and intern reviews.</p>
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
@@ -114,6 +118,7 @@ export default function ReviewsPage() {
         columns={columns}
         data={reviewData}
         searchPlaceholder="Search mentors..."
+        onRowClick={(r) => navigate(`/supervisor/mentors/${r.id}`)}
         emptyMessage="No review data yet"
         emptyIcon={<Star className="h-8 w-8" />}
       />

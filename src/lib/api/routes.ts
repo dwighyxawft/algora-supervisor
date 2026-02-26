@@ -7,7 +7,7 @@
 // All routes are relative to this base.
 // =============================================
 
-export const BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000';
+export const BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://algora.onrender.com';
 
 // Helper to build full URL
 const url = (path: string) => `${BASE_URL}/${path}`;
@@ -233,6 +233,7 @@ export const MentorRoutes = {
   create:            () => url('mentor'),                                    // POST
   checkOrCreate:     () => url('mentor/manual'),                             // POST
   findAll:           () => url('mentor'),                                    // GET
+  findBySupervisor:  (supervisorId: string) => url(`mentor/supervisor/${supervisorId}`), // GET
   findOne:           (id: string) => url(`mentor/${id}`),                    // GET
   findByEmail:       () => url('mentor/email/'),                             // GET (body: { email })
   sendVerification:  () => url('mentor/send-verification'),                  // POST
@@ -248,6 +249,11 @@ export const MentorRoutes = {
   updatePassword:    () => url('mentor/update-password/'),                   // PATCH
   updateEmail:       () => url('mentor/update-email/'),                      // PATCH
   remove:            (id: string) => url(`mentor/${id}`),                    // DELETE
+  // Complaints (MentorComplaint)
+  getComplaintsBySupervisor: (supervisorId: string) => url(`mentor/complaints/supervisor/${supervisorId}`), // GET — custom
+  updateComplaint:   (complaintId: string) => url(`mentor/complaint/${complaintId}`), // PATCH — custom
+  // Reviews (MentorReview)
+  getReviewsByMentor: (mentorId: string) => url(`mentor/${mentorId}/reviews`), // GET — custom
 } as const;
 
 // ==================== MESSAGES ====================

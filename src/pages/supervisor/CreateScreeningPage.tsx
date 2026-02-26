@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
-import { useCreateScreening, useMentors } from '@/hooks/use-api';
+import { useCreateScreening, useSupervisorMentors } from '@/hooks/use-api';
 import { ScreeningStatus } from '@/lib/api/models';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -9,9 +9,10 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { ArrowLeft, ArrowRight, Plus, Trash2, CheckCircle, Loader2 } from 'lucide-react';
+import { ArrowLeft, ArrowRight, CheckCircle, Loader2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import type { CreateScreeningDto } from '@/lib/api/dto';
+import { useMemo } from 'react';
 
 const STEPS = ['Basic Info', 'Select Mentor', 'Assessment Config', 'Review & Create'];
 
@@ -23,8 +24,13 @@ export default function CreateScreeningPage() {
   const [assessmentRetries, setAssessmentRetries] = useState('2');
   const navigate = useNavigate();
   const { user } = useAuth();
-  const { data: mentors } = useMentors();
+  const { data: mentors } = useSupervisorMentors(user?.id || '');
   const createScreening = useCreateScreening();
+
+  // Only show mentors who have NOT been screened
+  const unscreenedMentors = useMemo(() =>
+    mentors?.filter(m => !m.screening) || [],
+  [mentors]);
 
   const handleSubmit = () => {
     if (!user) return;
@@ -41,7 +47,7 @@ export default function CreateScreeningPage() {
     });
   };
 
-  const selectedMentor = mentors?.find(m => m.id === mentorId);
+  const selectedMentor = unscreenedMentors.find(m => m.id === mentorId);
 
   return (
     <div className="space-y-6 max-w-3xl mx-auto">
@@ -51,7 +57,7 @@ export default function CreateScreeningPage() {
 
       <div>
         <h1 className="text-2xl font-bold tracking-tight">Create Screening</h1>
-        <p className="text-sm text-muted-foreground mt-1">Set up a new mentor screening test.</p>
+        <p className="text-sm text-muted-foreground mt-1">Set up a screening test for an unscreened mentor.</p>
       </div>
 
       <div className="flex items-center gap-2">
@@ -96,20 +102,24 @@ export default function CreateScreeningPage() {
             <Card className="glass-card">
               <CardHeader>
                 <CardTitle>Select Mentor</CardTitle>
-                <CardDescription>Choose which mentor this screening is for.</CardDescription>
+                <CardDescription>Choose an unscreened mentor assigned to you.</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div className="space-y-2">
-                  <Label>Mentor</Label>
-                  <Select value={mentorId} onValueChange={setMentorId}>
-                    <SelectTrigger><SelectValue placeholder="Select a mentor..." /></SelectTrigger>
-                    <SelectContent>
-                      {mentors?.map(m => (
-                        <SelectItem key={m.id} value={m.id}>{m.firstName} {m.lastName} ({m.email})</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
+                {unscreenedMentors.length === 0 ? (
+                  <p className="text-sm text-muted-foreground text-center py-4">All your mentors have already been screened.</p>
+                ) : (
+                  <div className="space-y-2">
+                    <Label>Mentor</Label>
+                    <Select value={mentorId} onValueChange={setMentorId}>
+                      <SelectTrigger><SelectValue placeholder="Select a mentor..." /></SelectTrigger>
+                      <SelectContent>
+                        {unscreenedMentors.map(m => (
+                          <SelectItem key={m.id} value={m.id}>{m.firstName} {m.lastName} ({m.email})</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
                 {selectedMentor && (
                   <div className="p-3 rounded-lg bg-muted/30 text-sm">
                     <p className="font-medium">{selectedMentor.firstName} {selectedMentor.lastName}</p>
@@ -143,22 +153,10 @@ export default function CreateScreeningPage() {
               </CardHeader>
               <CardContent className="space-y-3">
                 <div className="grid grid-cols-2 gap-4 text-sm">
-                  <div>
-                    <p className="text-muted-foreground text-xs">Title</p>
-                    <p className="font-medium">{title || '—'}</p>
-                  </div>
-                  <div>
-                    <p className="text-muted-foreground text-xs">Mentor</p>
-                    <p className="font-medium">{selectedMentor ? `${selectedMentor.firstName} ${selectedMentor.lastName}` : '—'}</p>
-                  </div>
-                  <div>
-                    <p className="text-muted-foreground text-xs">Description</p>
-                    <p className="font-medium">{description || '—'}</p>
-                  </div>
-                  <div>
-                    <p className="text-muted-foreground text-xs">Retries</p>
-                    <p className="font-medium">{assessmentRetries}</p>
-                  </div>
+                  <div><p className="text-muted-foreground text-xs">Title</p><p className="font-medium">{title || '—'}</p></div>
+                  <div><p className="text-muted-foreground text-xs">Mentor</p><p className="font-medium">{selectedMentor ? `${selectedMentor.firstName} ${selectedMentor.lastName}` : '—'}</p></div>
+                  <div><p className="text-muted-foreground text-xs">Description</p><p className="font-medium">{description || '—'}</p></div>
+                  <div><p className="text-muted-foreground text-xs">Retries</p><p className="font-medium">{assessmentRetries}</p></div>
                 </div>
               </CardContent>
             </Card>
@@ -175,7 +173,7 @@ export default function CreateScreeningPage() {
             Next <ArrowRight className="h-4 w-4 ml-2" />
           </Button>
         ) : (
-          <Button onClick={handleSubmit} className="gradient-primary" disabled={createScreening.isPending || !title}>
+          <Button onClick={handleSubmit} className="gradient-primary" disabled={createScreening.isPending || !title || !mentorId}>
             {createScreening.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
             <CheckCircle className="h-4 w-4 mr-2" /> Create Screening
           </Button>

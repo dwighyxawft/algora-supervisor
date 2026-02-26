@@ -146,6 +146,12 @@ export enum ProjectStatus {
   PUBLISHED = 'PUBLISHED',
 }
 
+export enum ComplaintStatus {
+  PENDING = 'pending',
+  RESOLVED = 'resolved',
+  REJECTED = 'rejected',
+}
+
 // ==================== MODELS ====================
 
 export interface Achievement {
@@ -721,8 +727,40 @@ export interface Mentor {
   assessment_retries?: AssessmentRetry[];
   programs?: Program[];
   contactComplaints?: ContactComplaint[];
+  complaints?: MentorComplaint[];
+  reviews?: MentorReview[];
   exams?: Exam[];
   homeworks?: Homework[];
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+// ==================== MENTOR COMPLAINT ====================
+
+export interface MentorComplaint {
+  id: string;
+  title: string;
+  description: string;
+  mentorId: string;
+  mentor?: Mentor;
+  internId?: string;
+  intern?: Intern;
+  status: ComplaintStatus;
+  attachments?: string[];
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+// ==================== MENTOR REVIEW ====================
+
+export interface MentorReview {
+  id: string;
+  mentorId: string;
+  mentor?: Mentor;
+  internId: string;
+  intern?: Intern;
+  rating: number;
+  comment?: string;
   createdAt: Date;
   updatedAt: Date;
 }
