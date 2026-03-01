@@ -1,13 +1,13 @@
 import { useAuth } from '@/contexts/AuthContext';
 import { useSupervisorMentors, useMentorComplaints, useNotifications, useScreenings } from '@/hooks/use-api';
 import { StatCard } from '@/components/supervisor/StatCard';
-import { Users, ClipboardCheck, MessageSquareWarning, BarChart3, TrendingUp, Activity, Star, Bell, Phone } from 'lucide-react';
+import { Users, ClipboardCheck, MessageSquareWarning, BarChart3, TrendingUp, Activity, Star, Bell, Phone, Calendar } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { motion } from 'framer-motion';
-import { BarChart, Bar, XAxis, YAxis, Tooltip as RechartsTooltip, ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line } from 'recharts';
-import { useMemo } from 'react';
+import { BarChart, Bar, XAxis, YAxis, Tooltip as RechartsTooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
+import { useMemo, useState, useEffect } from 'react';
 
 const tooltipStyle = {
   contentStyle: {
@@ -18,6 +18,44 @@ const tooltipStyle = {
   },
 };
 
+function getNextMonthlyMeeting(): Date {
+  const now = new Date();
+  const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+  lastDay.setHours(21, 0, 0, 0); // 9PM GMT
+  if (now > lastDay) {
+    const nextMonth = new Date(now.getFullYear(), now.getMonth() + 2, 0);
+    nextMonth.setHours(21, 0, 0, 0);
+    return nextMonth;
+  }
+  return lastDay;
+}
+
+function useCountdown(targetDate: Date) {
+  const [timeLeft, setTimeLeft] = useState({ days: 0, hours: 0, minutes: 0, seconds: 0, expired: false });
+
+  useEffect(() => {
+    const tick = () => {
+      const diff = targetDate.getTime() - Date.now();
+      if (diff <= 0) {
+        setTimeLeft({ days: 0, hours: 0, minutes: 0, seconds: 0, expired: true });
+        return;
+      }
+      setTimeLeft({
+        days: Math.floor(diff / 86400000),
+        hours: Math.floor((diff % 86400000) / 3600000),
+        minutes: Math.floor((diff % 3600000) / 60000),
+        seconds: Math.floor((diff % 60000) / 1000),
+        expired: false,
+      });
+    };
+    tick();
+    const interval = setInterval(tick, 1000);
+    return () => clearInterval(interval);
+  }, [targetDate]);
+
+  return timeLeft;
+}
+
 export default function DashboardPage() {
   const { user } = useAuth();
   const { data: mentors, isLoading: mentorsLoading } = useSupervisorMentors(user?.id || '');
@@ -26,13 +64,17 @@ export default function DashboardPage() {
   const { data: notifications } = useNotifications();
 
   const isSaturday = new Date().getDay() === 6;
+  const monthlyMeeting = useMemo(() => getNextMonthlyMeeting(), []);
+  const countdown = useCountdown(monthlyMeeting);
 
   const screeningStats = useMemo(() => {
     if (!screenings) return { passed: 0, failed: 0, pending: 0, total: 0 };
-    const passed = screenings.filter(s => s.status === 'COMPLETED').length;
-    const failed = screenings.filter(s => s.status === 'FAILED').length;
-    const pending = screenings.filter(s => s.status === 'IN_PROGRESS' || s.status === 'NOT_STARTED').length;
-    return { passed, failed, pending, total: screenings.length };
+    return {
+      total: screenings.length,
+      passed: screenings.filter(s => s.status === 'COMPLETED').length,
+      failed: screenings.filter(s => s.status === 'FAILED').length,
+      pending: screenings.filter(s => s.status === 'IN_PROGRESS' || s.status === 'NOT_STARTED').length,
+    };
   }, [screenings]);
 
   const pendingComplaints = useMemo(() => complaints?.filter(c => c.status === 'pending').length ?? 0, [complaints]);
@@ -92,6 +134,47 @@ export default function DashboardPage() {
           </motion.div>
         )}
       </div>
+
+      {/* Root Monthly Meeting Countdown */}
+      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}>
+        <Card className="glass-card border-primary/20">
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="p-2.5 rounded-lg bg-primary/10">
+                  <Calendar className="h-5 w-5 text-primary" />
+                </div>
+                <div>
+                  <p className="text-sm font-medium">Root Monthly Meeting</p>
+                  <p className="text-xs text-muted-foreground">Last day of month · 9:00 PM GMT</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-4">
+                <div className="flex gap-3 text-center">
+                  {[
+                    { value: countdown.days, label: 'Days' },
+                    { value: countdown.hours, label: 'Hrs' },
+                    { value: countdown.minutes, label: 'Min' },
+                    { value: countdown.seconds, label: 'Sec' },
+                  ].map(t => (
+                    <div key={t.label} className="bg-muted/50 rounded-lg px-3 py-1.5 min-w-[48px]">
+                      <p className="text-lg font-bold font-mono">{String(t.value).padStart(2, '0')}</p>
+                      <p className="text-[10px] text-muted-foreground">{t.label}</p>
+                    </div>
+                  ))}
+                </div>
+                <Button
+                  className="gradient-primary gap-2"
+                  disabled={!countdown.expired}
+                >
+                  <Phone className="h-4 w-4" />
+                  {countdown.expired ? 'Join Meeting' : 'Waiting...'}
+                </Button>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </motion.div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard title="My Mentors" value={mentors?.length ?? 0} icon={Users} delay={0} />
