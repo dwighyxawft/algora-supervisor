@@ -22,6 +22,11 @@ import {
   InternRoutes,
   GroupRoutes,
   OnboardingRoutes,
+  ScheduleRoutes,
+  ClassDaysRoutes,
+  HomeworkRoutes,
+  ClassworkRoutes,
+  OutlineRoutes,
 } from './routes';
 
 import type {
@@ -47,6 +52,12 @@ import type {
   MentorComplaint,
   MentorReview,
   ProgramBatch,
+  Schedule,
+  ClassDay,
+  Homework,
+  Classwork,
+  ProgramOutline,
+  SessionPresence,
 } from './models';
 
 import type {
@@ -118,6 +129,7 @@ export const assessmentService = {
   create: (data: CreateAssessmentDto) => apiClient.post<Assessment>(AssessmentRoutes.create(), data),
   update: (id: string, data: UpdateAssessmentDto) => apiClient.patch<Assessment>(AssessmentRoutes.update(id), data),
   remove: (id: string) => apiClient.delete<DeleteResult>(AssessmentRoutes.remove(id)),
+  ready: (id: string) => apiClient.post<void>(AssessmentRoutes.ready(id)),
   approveRetry: (id: string) => apiClient.post<void>(AssessmentRoutes.approveRetry(id)),
 };
 
@@ -194,6 +206,7 @@ export const onboardingService = {
   findForIntern: (internId: string) => apiClient.get<InternProgramOnboarding[]>(OnboardingRoutes.findForIntern(internId)),
   findForProgramAndBatch: (programId: string, batchId: string) =>
     apiClient.get<InternProgramOnboarding[]>(OnboardingRoutes.findForProgramAndBatch(programId, batchId)),
+  findForProgram: (programId: string) => apiClient.get<InternProgramOnboarding[]>(OnboardingRoutes.findForProgram(programId)),
 };
 
 // ==================== CHALLENGES ====================
@@ -213,6 +226,36 @@ export const examService = {
   findOne: (id: string) => apiClient.get<Exam>(ExamRoutes.findOne(id)),
 };
 
+// ==================== SCHEDULES ====================
+export const scheduleService = {
+  findAll: () => apiClient.get<Schedule[]>(ScheduleRoutes.findAll()),
+  findOne: (id: string) => apiClient.get<Schedule>(ScheduleRoutes.findOne(id)),
+};
+
+// ==================== CLASS DAYS ====================
+export const classDayService = {
+  findAll: (programBatchId?: string) => apiClient.get<ClassDay[]>(ClassDaysRoutes.findAll(programBatchId)),
+  findOne: (id: string) => apiClient.get<ClassDay>(ClassDaysRoutes.findOne(id)),
+};
+
+// ==================== HOMEWORK ====================
+export const homeworkService = {
+  findAll: () => apiClient.get<Homework[]>(HomeworkRoutes.findAll()),
+  findOne: (id: string) => apiClient.get<Homework>(HomeworkRoutes.findOne(id)),
+};
+
+// ==================== CLASSWORK ====================
+export const classworkService = {
+  findAll: () => apiClient.get<Classwork[]>(ClassworkRoutes.findAll()),
+  findOne: (id: string) => apiClient.get<Classwork>(ClassworkRoutes.findOne(id)),
+};
+
+// ==================== OUTLINES ====================
+export const outlineService = {
+  findAll: (batchId?: string) => apiClient.get<ProgramOutline[]>(OutlineRoutes.findAll(batchId)),
+  findOne: (id: string) => apiClient.get<ProgramOutline>(OutlineRoutes.findOne(id)),
+};
+
 // ==================== PROJECT EXAM ====================
 export const projectExamService = {
   findAll: () => apiClient.get<ProjectExam[]>(ProjectExamRoutes.findAll()),
@@ -228,6 +271,3 @@ export const projectExamService = {
   updateSubmissionStatus: (submissionId: string, data: UpdateProjectSubmissionStatusDto) =>
     apiClient.patch<ProjectExamSubmission>(ProjectExamRoutes.updateSubmissionStatus(submissionId), data),
 };
-
-// ==================== SCREENING ====================
-export const screeningServiceAlt = screeningService;

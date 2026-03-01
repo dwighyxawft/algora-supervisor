@@ -1,14 +1,27 @@
 import { useParams, useNavigate } from 'react-router-dom';
 import { useBatch, useBatchOnboardings } from '@/hooks/use-api';
-import { Card, CardContent } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Progress } from '@/components/ui/progress';
+import { StatCard } from '@/components/supervisor/StatCard';
 import { DataTable } from '@/components/supervisor/DataTable';
-import { ArrowLeft, GraduationCap, Calendar } from 'lucide-react';
+import { ArrowLeft, GraduationCap, Calendar, Users, TrendingUp, CheckCircle, DollarSign } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { BarChart, Bar, XAxis, YAxis, Tooltip as RechartsTooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
+import { useMemo } from 'react';
 import type { InternProgramOnboarding } from '@/lib/api/models';
+
+const tooltipStyle = {
+  contentStyle: {
+    background: 'hsl(222, 30%, 8%)',
+    border: '1px solid hsl(222, 20%, 14%)',
+    borderRadius: '8px',
+    fontSize: '12px',
+  },
+};
 
 export default function BatchDetailPage() {
   const { id: programId, batchId } = useParams();
@@ -17,6 +30,29 @@ export default function BatchDetailPage() {
   const { data: onboardings, isLoading: onbLoading } = useBatchOnboardings(programId!, batchId!);
 
   const isLoading = batchLoading || onbLoading;
+
+  const stats = useMemo(() => {
+    if (!onboardings) return { total: 0, completed: 0, passed: 0, fullyPaid: 0, avgProgress: 0 };
+    const completed = onboardings.filter(o => o.completed).length;
+    const passed = onboardings.filter(o => o.passed).length;
+    const fullyPaid = onboardings.filter(o => o.fullyPaid).length;
+    const avgProgress = onboardings.length ? Math.round(onboardings.reduce((a, o) => a + o.progressPercentage, 0) / onboardings.length) : 0;
+    return { total: onboardings.length, completed, passed, fullyPaid, avgProgress };
+  }, [onboardings]);
+
+  const progressDistribution = useMemo(() => {
+    if (!onboardings) return [];
+    const ranges = [
+      { name: '0-25%', min: 0, max: 25, color: 'hsl(0, 72%, 51%)' },
+      { name: '26-50%', min: 26, max: 50, color: 'hsl(38, 92%, 50%)' },
+      { name: '51-75%', min: 51, max: 75, color: 'hsl(217, 91%, 53%)' },
+      { name: '76-100%', min: 76, max: 100, color: 'hsl(142, 76%, 36%)' },
+    ];
+    return ranges.map(r => ({
+      ...r,
+      value: onboardings.filter(o => o.progressPercentage >= r.min && o.progressPercentage <= r.max).length,
+    }));
+  }, [onboardings]);
 
   const columns = [
     {
@@ -42,11 +78,9 @@ export default function BatchDetailPage() {
       label: 'Progress',
       sortable: true,
       render: (o: InternProgramOnboarding) => (
-        <div className="flex items-center gap-2">
-          <div className="w-20 h-1.5 rounded-full bg-muted overflow-hidden">
-            <div className="h-full rounded-full bg-primary" style={{ width: `${o.progressPercentage}%` }} />
-          </div>
-          <span className="text-xs text-muted-foreground">{o.progressPercentage}%</span>
+        <div className="flex items-center gap-2 min-w-[140px]">
+          <Progress value={o.progressPercentage} className="h-1.5 flex-1" />
+          <span className="text-xs font-medium text-muted-foreground w-10 text-right">{o.progressPercentage}%</span>
         </div>
       ),
     },
@@ -66,6 +100,13 @@ export default function BatchDetailPage() {
         <Badge variant={o.fullyPaid ? 'default' : 'secondary'}>
           {o.fullyPaid ? 'Paid' : o.programPricePaid ? 'Partial' : 'Unpaid'}
         </Badge>
+      ),
+    },
+    {
+      key: 'feedback',
+      label: 'Feedback',
+      render: (o: InternProgramOnboarding) => (
+        <span className="text-xs text-muted-foreground truncate max-w-[200px] block">{o.feedback || '—'}</span>
       ),
     },
   ];
@@ -103,6 +144,65 @@ export default function BatchDetailPage() {
             </CardContent>
           </Card>
         </motion.div>
+      )}
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <StatCard title="Total Interns" value={stats.total} icon={Users} delay={0} />
+        <StatCard title="Completed" value={stats.completed} icon={CheckCircle} delay={0.1} />
+        <StatCard title="Avg. Progress" value={`${stats.avgProgress}%`} icon={TrendingUp} delay={0.2} />
+        <StatCard title="Fully Paid" value={stats.fullyPaid} icon={DollarSign} delay={0.3} />
+      </div>
+
+      {onboardings && onboardings.length > 0 && (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}>
+            <Card className="glass-card">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium text-muted-foreground">Progress Distribution</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <ResponsiveContainer width="100%" height={200}>
+                  <BarChart data={progressDistribution}>
+                    <XAxis dataKey="name" stroke="hsl(215, 20%, 55%)" fontSize={11} tickLine={false} axisLine={false} />
+                    <YAxis stroke="hsl(215, 20%, 55%)" fontSize={11} tickLine={false} axisLine={false} />
+                    <RechartsTooltip {...tooltipStyle} />
+                    <Bar dataKey="value" radius={[4, 4, 0, 0]}>
+                      {progressDistribution.map((entry, idx) => <Cell key={idx} fill={entry.color} />)}
+                    </Bar>
+                  </BarChart>
+                </ResponsiveContainer>
+              </CardContent>
+            </Card>
+          </motion.div>
+          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }}>
+            <Card className="glass-card h-full">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium text-muted-foreground">Payment Status</CardTitle>
+              </CardHeader>
+              <CardContent className="flex items-center justify-center">
+                <ResponsiveContainer width="100%" height={180}>
+                  <PieChart>
+                    <Pie
+                      data={[
+                        { name: 'Fully Paid', value: stats.fullyPaid, color: 'hsl(142, 76%, 36%)' },
+                        { name: 'Partial', value: onboardings.filter(o => o.programPricePaid && !o.fullyPaid).length, color: 'hsl(38, 92%, 50%)' },
+                        { name: 'Unpaid', value: onboardings.filter(o => !o.programPricePaid).length, color: 'hsl(0, 72%, 51%)' },
+                      ]}
+                      cx="50%" cy="50%" innerRadius={50} outerRadius={75} paddingAngle={4} dataKey="value"
+                    >
+                      {[
+                        { color: 'hsl(142, 76%, 36%)' },
+                        { color: 'hsl(38, 92%, 50%)' },
+                        { color: 'hsl(0, 72%, 51%)' },
+                      ].map((entry, idx) => <Cell key={idx} fill={entry.color} />)}
+                    </Pie>
+                    <RechartsTooltip {...tooltipStyle} />
+                  </PieChart>
+                </ResponsiveContainer>
+              </CardContent>
+            </Card>
+          </motion.div>
+        </div>
       )}
 
       <div>

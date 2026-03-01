@@ -22,6 +22,11 @@ import {
   onboardingService,
   challengeService,
   batchService,
+  scheduleService,
+  classDayService,
+  homeworkService,
+  classworkService,
+  outlineService,
 } from '@/lib/api/services';
 import type {
   CreateScreeningDto,
@@ -162,6 +167,14 @@ export function useBatchOnboardings(programId: string, batchId: string) {
   });
 }
 
+export function useProgramOnboardings(programId: string) {
+  return useQuery({
+    queryKey: ['onboardings', 'program', programId],
+    queryFn: () => onboardingService.findForProgram(programId),
+    enabled: !!programId,
+  });
+}
+
 // ==================== SUPERVISOR PROFILE ====================
 export function useUpdateSupervisorProfile() {
   const qc = useQueryClient();
@@ -187,14 +200,60 @@ export function useAssessments() {
   return useQuery({ queryKey: ['assessments'], queryFn: assessmentService.findAll });
 }
 
+export function useApproveAssessmentRetry() {
+  const qc = useQueryClient();
+  const { toast } = useToast();
+  return useMutation({
+    mutationFn: (id: string) => assessmentService.approveRetry(id),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['screenings'] }); toast({ title: 'Retry approved' }); },
+    onError: (e: Error) => toast({ title: 'Error', description: e.message, variant: 'destructive' }),
+  });
+}
+
 // ==================== CODE INTERVIEWS ====================
 export function useCodeInterviews() {
   return useQuery({ queryKey: ['codeInterviews'], queryFn: codeInterviewService.findAll });
 }
 
+export function useApproveCodeAttempt() {
+  const qc = useQueryClient();
+  const { toast } = useToast();
+  return useMutation({
+    mutationFn: (id: string) => codeInterviewService.approveAttempt(id),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['screenings'] }); toast({ title: 'Attempt approved' }); },
+  });
+}
+
+export function useRejectCodeAttempt() {
+  const qc = useQueryClient();
+  const { toast } = useToast();
+  return useMutation({
+    mutationFn: (id: string) => codeInterviewService.rejectAttempt(id),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['screenings'] }); toast({ title: 'Attempt rejected' }); },
+  });
+}
+
 // ==================== QBOT ====================
 export function useQbots() {
   return useQuery({ queryKey: ['qbots'], queryFn: qbotService.findAll });
+}
+
+export function useApproveQbotRetry() {
+  const qc = useQueryClient();
+  const { toast } = useToast();
+  return useMutation({
+    mutationFn: (id: string) => qbotService.approveRetry(id),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['screenings'] }); toast({ title: 'QBot retry approved' }); },
+  });
+}
+
+export function useRejectQbotRetry() {
+  const qc = useQueryClient();
+  const { toast } = useToast();
+  return useMutation({
+    mutationFn: (id: string) => qbotService.rejectRetry(id),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['screenings'] }); toast({ title: 'QBot retry rejected' }); },
+  });
 }
 
 // ==================== WORK SAMPLES ====================
@@ -203,6 +262,14 @@ export function useMentorWorkSamples(mentorId: string) {
 }
 
 // ==================== SUPERVISOR REVIEWS ====================
+export function useStartReview() {
+  const { toast } = useToast();
+  return useMutation({
+    mutationFn: (data: { screening_id: string; supervisor_id: string; mentor_id: string }) => reviewService.start(data),
+    onError: (e: Error) => toast({ title: 'Error', description: e.message, variant: 'destructive' }),
+  });
+}
+
 export function useCompleteReview() {
   const qc = useQueryClient();
   const { toast } = useToast();
@@ -216,6 +283,26 @@ export function useCompleteReview() {
 // ==================== EXAMS ====================
 export function useExams() {
   return useQuery({ queryKey: ['exams'], queryFn: examService.findAll });
+}
+
+// ==================== SCHEDULES ====================
+export function useSchedules() {
+  return useQuery({ queryKey: ['schedules'], queryFn: scheduleService.findAll });
+}
+
+// ==================== HOMEWORK ====================
+export function useHomeworks() {
+  return useQuery({ queryKey: ['homeworks'], queryFn: homeworkService.findAll });
+}
+
+// ==================== CLASSWORK ====================
+export function useClassworks() {
+  return useQuery({ queryKey: ['classworks'], queryFn: classworkService.findAll });
+}
+
+// ==================== CHALLENGES ====================
+export function useChallenges() {
+  return useQuery({ queryKey: ['challenges'], queryFn: challengeService.findAll });
 }
 
 // ==================== PROJECT EXAMS ====================
@@ -249,9 +336,4 @@ export function useUpdateProjectSubmissionStatus() {
       projectExamService.updateSubmissionStatus(submissionId, data),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['projectExamSubmissions'] }),
   });
-}
-
-// ==================== CHALLENGES ====================
-export function useChallenges() {
-  return useQuery({ queryKey: ['challenges'], queryFn: challengeService.findAll });
 }

@@ -1,12 +1,13 @@
 import { useState } from 'react';
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
+import { useNotifications } from '@/hooks/use-api';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import {
   LayoutDashboard, Users, ClipboardCheck, MessageSquareWarning,
   Star, Settings, LogOut, ChevronLeft, ChevronRight,
-  Bell, Search, Shield, Menu, FolderOpen
+  Bell, Search, Shield, Menu, FolderOpen, BarChart3, TrendingUp
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -21,10 +22,12 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip
 const NAV_ITEMS = [
   { label: 'Dashboard', icon: LayoutDashboard, path: '/supervisor/dashboard' },
   { label: 'Mentors', icon: Users, path: '/supervisor/mentors' },
+  { label: 'Performance', icon: TrendingUp, path: '/supervisor/performance' },
   { label: 'Screening', icon: ClipboardCheck, path: '/supervisor/screening' },
   { label: 'Projects', icon: FolderOpen, path: '/supervisor/projects' },
   { label: 'Complaints', icon: MessageSquareWarning, path: '/supervisor/complaints' },
   { label: 'Reviews', icon: Star, path: '/supervisor/reviews' },
+  { label: 'Analytics', icon: BarChart3, path: '/supervisor/analytics' },
   { label: 'Settings', icon: Settings, path: '/supervisor/settings' },
 ];
 
@@ -34,6 +37,8 @@ export default function SupervisorLayout() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
+  const { data: notifications } = useNotifications();
+  const unreadCount = notifications?.filter(n => !n.isRead).length ?? 0;
 
   const initials = user ? `${user.firstName?.[0] || ''}${user.lastName?.[0] || ''}`.toUpperCase() : 'SV';
 
@@ -185,7 +190,11 @@ export default function SupervisorLayout() {
           <div className="flex items-center gap-2">
             <Button variant="ghost" size="icon" className="relative">
               <Bell className="h-[18px] w-[18px]" />
-              <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-primary" />
+              {unreadCount > 0 && (
+                <span className="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] rounded-full bg-destructive text-destructive-foreground text-[10px] font-bold flex items-center justify-center px-1">
+                  {unreadCount > 9 ? '9+' : unreadCount}
+                </span>
+              )}
             </Button>
 
             <DropdownMenu>

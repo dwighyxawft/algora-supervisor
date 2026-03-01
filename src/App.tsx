@@ -16,12 +16,14 @@ import ResetPasswordPage from "@/pages/supervisor/ResetPasswordPage";
 import DashboardPage from "@/pages/supervisor/DashboardPage";
 import MentorListPage from "@/pages/supervisor/MentorListPage";
 import MentorProfilePage from "@/pages/supervisor/MentorProfilePage";
+import MentorPerformancePage from "@/pages/supervisor/MentorPerformancePage";
 import ScreeningDashboardPage from "@/pages/supervisor/ScreeningDashboardPage";
 import CreateScreeningPage from "@/pages/supervisor/CreateScreeningPage";
 import ScreeningReviewPage from "@/pages/supervisor/ScreeningReviewPage";
 import ComplaintsPage from "@/pages/supervisor/ComplaintsPage";
 import ComplaintDetailPage from "@/pages/supervisor/ComplaintDetailPage";
 import ReviewsPage from "@/pages/supervisor/ReviewsPage";
+import AnalyticsPage from "@/pages/supervisor/AnalyticsPage";
 import SettingsPage from "@/pages/supervisor/SettingsPage";
 import ProjectSubmissionsPage from "@/pages/supervisor/ProjectSubmissionsPage";
 import ProgramDetailPage from "@/pages/supervisor/ProgramDetailPage";
@@ -52,12 +54,14 @@ const App = () => (
                 <Route path="/supervisor/dashboard" element={<DashboardPage />} />
                 <Route path="/supervisor/mentors" element={<MentorListPage />} />
                 <Route path="/supervisor/mentors/:id" element={<MentorProfilePage />} />
+                <Route path="/supervisor/performance" element={<MentorPerformancePage />} />
                 <Route path="/supervisor/screening" element={<ScreeningDashboardPage />} />
                 <Route path="/supervisor/screening/create" element={<CreateScreeningPage />} />
                 <Route path="/supervisor/screening/:id" element={<ScreeningReviewPage />} />
                 <Route path="/supervisor/complaints" element={<ComplaintsPage />} />
                 <Route path="/supervisor/complaints/:id" element={<ComplaintDetailPage />} />
                 <Route path="/supervisor/reviews" element={<ReviewsPage />} />
+                <Route path="/supervisor/analytics" element={<AnalyticsPage />} />
                 <Route path="/supervisor/projects" element={<ProjectSubmissionsPage />} />
                 <Route path="/supervisor/programs/:id" element={<ProgramDetailPage />} />
                 <Route path="/supervisor/programs/:id/batches/:batchId" element={<BatchDetailPage />} />
