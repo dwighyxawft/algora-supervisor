@@ -1,5 +1,5 @@
 import { useParams, useNavigate } from 'react-router-dom';
-import { useScreening, useApproveAssessmentRetry, useApproveCodeAttempt, useRejectCodeAttempt, useApproveQbotRetry, useRejectQbotRetry } from '@/hooks/use-api';
+import { useScreening, useApproveAssessmentRetry, useApproveCodeAttempt, useRejectCodeAttempt, useApproveQbotRetry, useRejectQbotRetry, useMentorWorkSamples, useCreateQbot, useStartQbotInterview, useGenerateQbotQuestions, useCreateCodeInterview, useUpdateScreening } from '@/hooks/use-api';
 import { useAuth } from '@/contexts/AuthContext';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -7,19 +7,24 @@ import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { ArrowLeft, CheckCircle, XCircle, Code, FileText, Bot, Video, Loader2, RefreshCw, Clock, Shield } from 'lucide-react';
+import { ArrowLeft, CheckCircle, XCircle, Code, FileText, Bot, Shield, Loader2, RefreshCw, Clock, Plus, ExternalLink, Image as ImageIcon, Link2, Eye } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { reviewService } from '@/lib/api/services';
-import { useState } from 'react';
+import { useState, lazy, Suspense } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
+import { Input } from '@/components/ui/input';
+import { AssessmentStatus } from '@/lib/api/models';
+import type { CreateCodeInterviewDto } from '@/lib/api/dto';
+
+const CodeWorkspace = lazy(() => import('@/components/CodeWorkspace').then(m => ({ default: m.CodeWorkspace })));
 
 const PHASES = [
   { key: 'assessment', label: 'Assessment', icon: FileText, phase: 1 },
-  { key: 'codeInterview', label: 'Code Interview', icon: Code, phase: 2 },
+  { key: 'workSample', label: 'Work Samples', icon: ImageIcon, phase: 2 },
   { key: 'qbot', label: 'QBot Interview', icon: Bot, phase: 3 },
-  { key: 'review', label: 'Final Review', icon: Video, phase: 4 },
+  { key: 'review', label: 'Final Review', icon: Shield, phase: 4 },
 ];
 
 export default function ScreeningReviewPage() {
@@ -32,12 +37,85 @@ export default function ScreeningReviewPage() {
   const [rejecting, setRejecting] = useState(false);
   const [reviewComments, setReviewComments] = useState('');
   const [reviewReport, setReviewReport] = useState('');
+  const [showCodeEditor, setShowCodeEditor] = useState(false);
+
+  // Code interview creation state
+  const [showCreateCI, setShowCreateCI] = useState(false);
+  const [ciTitle, setCiTitle] = useState('');
+  const [ciDescription, setCiDescription] = useState('');
+  const [ciDuration, setCiDuration] = useState('60');
+  const [ciPassCutoff, setCiPassCutoff] = useState('70');
 
   const approveRetry = useApproveAssessmentRetry();
   const approveCode = useApproveCodeAttempt();
   const rejectCode = useRejectCodeAttempt();
   const approveQbot = useApproveQbotRetry();
   const rejectQbot = useRejectQbotRetry();
+  const createQbot = useCreateQbot();
+  const startQbot = useStartQbotInterview();
+  const generateQbotQ = useGenerateQbotQuestions();
+  const createCodeInterview = useCreateCodeInterview();
+  const updateScreening = useUpdateScreening();
+
+  const mentorId = screening?.mentor_id || '';
+  const { data: workSamples } = useMentorWorkSamples(mentorId);
+
+  const handleApproveWorkSamples = async () => {
+    if (!screening) return;
+    setApproving(true);
+    try {
+      await updateScreening.mutateAsync({ id: screening.id, data: { currentPhase: 3 } as any });
+      toast({ title: 'Work samples approved', description: 'Phase 3 (QBot) is now unlocked.' });
+      refetch();
+    } catch (e: any) {
+      toast({ title: 'Error', description: e.message, variant: 'destructive' });
+    } finally {
+      setApproving(false);
+    }
+  };
+
+  const handleRejectWorkSamples = async () => {
+    if (!screening) return;
+    setRejecting(true);
+    try {
+      await updateScreening.mutateAsync({ id: screening.id, data: { status: 'FAILED' as any } });
+      toast({ title: 'Work samples rejected. Screening failed.' });
+      refetch();
+    } catch (e: any) {
+      toast({ title: 'Error', description: e.message, variant: 'destructive' });
+    } finally {
+      setRejecting(false);
+    }
+  };
+
+  const handleCreateQbot = async () => {
+    if (!screening) return;
+    try {
+      const qbot = await createQbot.mutateAsync(screening.id);
+      if (qbot?.id) {
+        await generateQbotQ.mutateAsync({ qbotId: qbot.id, mentorId: screening.mentor_id });
+      }
+      refetch();
+    } catch {}
+  };
+
+  const handleCreateCodeInterview = async () => {
+    if (!screening) return;
+    const dto: CreateCodeInterviewDto = {
+      mentor_id: screening.mentor_id,
+      screening_id: screening.id,
+      title: ciTitle || 'Live Code Interview',
+      description: ciDescription,
+      passCutoff: parseInt(ciPassCutoff) || 70,
+      status: AssessmentStatus.PENDING,
+      durationMinutes: parseInt(ciDuration) || 60,
+    };
+    try {
+      await createCodeInterview.mutateAsync(dto);
+      setShowCreateCI(false);
+      refetch();
+    } catch {}
+  };
 
   const handleApprove = async () => {
     if (!screening || !user) return;
@@ -53,7 +131,7 @@ export default function ScreeningReviewPage() {
         report: reviewReport || 'Mentor approved after comprehensive review.',
         comments: reviewComments || 'All screening phases completed successfully.',
       });
-      toast({ title: 'Mentor approved', description: 'The mentor has been approved successfully.' });
+      toast({ title: 'Mentor approved & certified!' });
       refetch();
     } catch (e: any) {
       toast({ title: 'Error', description: e.message, variant: 'destructive' });
@@ -97,10 +175,20 @@ export default function ScreeningReviewPage() {
 
   const phaseStatus = [
     { passed: screening.assessmentPassed, score: screening.finalAssessmentScore, retries: screening.assessmentRetries },
-    { passed: screening.codeInterviewPassed, score: screening.finalCodeInterviewScore, retries: screening.codeInterviewRetries },
+    { passed: screening.currentPhase > 2, score: null, retries: 0 },
     { passed: screening.qBotPassed, score: null, retries: screening.qBotRetries },
     { passed: screening.reviewCompleted, score: null, retries: screening.reviewRetries },
   ];
+
+  const canAccessPhase = (phase: number) => {
+    if (phase === 1) return true;
+    if (phase === 2) return screening.assessmentPassed;
+    if (phase === 3) return screening.assessmentPassed && screening.currentPhase >= 3;
+    if (phase === 4) return screening.assessmentPassed && screening.currentPhase >= 3 && screening.qBotPassed;
+    return false;
+  };
+
+  const allPhasesComplete = screening.assessmentPassed && screening.currentPhase >= 3 && screening.qBotPassed;
 
   return (
     <div className="space-y-6">
@@ -108,7 +196,7 @@ export default function ScreeningReviewPage() {
         <ArrowLeft className="h-4 w-4" /> Back
       </Button>
 
-      {/* Header Card with Mentor Info */}
+      {/* Header */}
       <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
         <Card className="glass-card">
           <CardContent className="p-6">
@@ -131,12 +219,13 @@ export default function ScreeningReviewPage() {
                   }>{screening.status.replace('_', ' ')}</Badge>
                 </div>
                 <p className="text-sm text-muted-foreground mt-1">
-                  Mentor: {screening.mentor ? `${screening.mentor.firstName} ${screening.mentor.lastName}` : screening.mentor_id}
+                  {screening.mentor ? `${screening.mentor.firstName} ${screening.mentor.lastName}` : screening.mentor_id}
+                  {screening.mentor?.email && ` · ${screening.mentor.email}`}
                 </p>
                 {screening.description && <p className="text-sm text-muted-foreground mt-1">{screening.description}</p>}
               </div>
               <div className="text-right">
-                <p className="text-xs text-muted-foreground">Current Phase</p>
+                <p className="text-xs text-muted-foreground">Phase</p>
                 <p className="text-3xl font-bold gradient-text">{screening.currentPhase}/4</p>
               </div>
             </div>
@@ -157,28 +246,28 @@ export default function ScreeningReviewPage() {
                 const status = phaseStatus[i];
                 const isActive = screening.currentPhase === phase.phase;
                 const isDone = status.passed;
+                const locked = !canAccessPhase(phase.phase);
                 return (
                   <div key={phase.key} className="relative flex flex-col items-center gap-2 z-10">
                     <div className={`w-10 h-10 rounded-full flex items-center justify-center transition-all ${
                       isDone ? 'bg-green-500/20 border-2 border-green-500' :
                       isActive ? 'bg-primary/20 border-2 border-primary animate-pulse' :
+                      locked ? 'bg-muted/50 border-2 border-border/50 opacity-50' :
                       'bg-muted border-2 border-border'
                     }`}>
                       {isDone ? <CheckCircle className="h-5 w-5 text-green-400" /> :
-                       isActive ? <phase.icon className="h-5 w-5 text-primary" /> :
-                       <phase.icon className="h-5 w-5 text-muted-foreground" />}
+                       <phase.icon className={`h-5 w-5 ${isActive ? 'text-primary' : 'text-muted-foreground'}`} />}
                     </div>
-                    <span className={`text-xs font-medium ${isDone ? 'text-green-400' : isActive ? 'text-primary' : 'text-muted-foreground'}`}>
+                    <span className={`text-xs font-medium text-center ${isDone ? 'text-green-400' : isActive ? 'text-primary' : 'text-muted-foreground'}`}>
                       {phase.label}
                     </span>
-                    {status.score != null && (
-                      <span className="text-xs text-muted-foreground">{status.score}%</span>
-                    )}
+                    {status.score != null && <span className="text-xs text-muted-foreground">{status.score}%</span>}
                     {status.retries > 0 && (
                       <span className="text-[10px] text-muted-foreground flex items-center gap-0.5">
-                        <RefreshCw className="h-2.5 w-2.5" /> {status.retries} retries
+                        <RefreshCw className="h-2.5 w-2.5" /> {status.retries}
                       </span>
                     )}
+                    {locked && <span className="text-[10px] text-muted-foreground">🔒</span>}
                   </div>
                 );
               })}
@@ -187,21 +276,30 @@ export default function ScreeningReviewPage() {
         </Card>
       </motion.div>
 
-      {/* Phase Details Tabs */}
+      {/* Phase Tabs */}
       <Tabs defaultValue="assessment">
         <TabsList className="bg-muted/50">
-          <TabsTrigger value="assessment" className="gap-1.5"><FileText className="h-3.5 w-3.5" /> Assessment</TabsTrigger>
-          <TabsTrigger value="code" className="gap-1.5"><Code className="h-3.5 w-3.5" /> Code Review</TabsTrigger>
-          <TabsTrigger value="qbot" className="gap-1.5"><Bot className="h-3.5 w-3.5" /> QBot</TabsTrigger>
-          <TabsTrigger value="final" className="gap-1.5"><Shield className="h-3.5 w-3.5" /> Final Review</TabsTrigger>
+          <TabsTrigger value="assessment" className="gap-1.5"><FileText className="h-3.5 w-3.5" /> Phase 1</TabsTrigger>
+          <TabsTrigger value="workSamples" className="gap-1.5" disabled={!canAccessPhase(2)}><ImageIcon className="h-3.5 w-3.5" /> Phase 2</TabsTrigger>
+          <TabsTrigger value="qbot" className="gap-1.5" disabled={!canAccessPhase(3)}><Bot className="h-3.5 w-3.5" /> Phase 3</TabsTrigger>
+          <TabsTrigger value="final" className="gap-1.5" disabled={!canAccessPhase(4)}><Shield className="h-3.5 w-3.5" /> Phase 4</TabsTrigger>
         </TabsList>
 
-        {/* Assessment Tab */}
+        {/* ====== PHASE 1 — ASSESSMENT ====== */}
         <TabsContent value="assessment" className="mt-4 space-y-4">
           <Card className="glass-card">
             <CardHeader>
-              <CardTitle className="text-sm">Assessment Results</CardTitle>
-              <CardDescription>Phase 1 — Written assessment performance and retry history.</CardDescription>
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle className="text-sm">Phase 1 — Assessment</CardTitle>
+                  <CardDescription>Theory or objective assessment. Max 2 retries (3 total attempts).</CardDescription>
+                </div>
+                {!screening.assessmentPassed && screening.status !== 'FAILED' && (
+                  <Button size="sm" className="gap-1.5 gradient-primary" onClick={() => navigate(`/supervisor/screening/${id}/assessment/create`)}>
+                    <Plus className="h-3.5 w-3.5" /> Create Assessment
+                  </Button>
+                )}
+              </div>
             </CardHeader>
             <CardContent className="space-y-3">
               {screening.assessments && screening.assessments.length > 0 ? (
@@ -213,14 +311,14 @@ export default function ScreeningReviewPage() {
                     </div>
                     <div className="flex items-center gap-3">
                       {a.score != null && <span className="text-sm font-semibold">{a.score} pts</span>}
-                      <Badge className={a.passed ? 'bg-green-500/10 text-green-400 border-green-500/20' : 'bg-destructive/10 text-destructive border-destructive/20'}>
-                        {a.passed ? 'Passed' : 'Failed'}
+                      <Badge className={a.passed ? 'bg-green-500/10 text-green-400 border-green-500/20' : a.status === 'COMPLETED' ? 'bg-destructive/10 text-destructive border-destructive/20' : 'bg-primary/10 text-primary border-primary/20'}>
+                        {a.passed ? 'Passed' : a.status}
                       </Badge>
                     </div>
                   </div>
                 ))
               ) : (
-                <p className="text-sm text-muted-foreground text-center py-4">No assessment results yet.</p>
+                <p className="text-sm text-muted-foreground text-center py-4">No assessments created yet. Create one to start Phase 1.</p>
               )}
               {screening.retries && screening.retries.length > 0 && (
                 <div className="space-y-2 pt-4 border-t border-border/50">
@@ -246,32 +344,233 @@ export default function ScreeningReviewPage() {
           </Card>
         </TabsContent>
 
-        {/* Code Interview Tab */}
-        <TabsContent value="code" className="mt-4 space-y-4">
+        {/* ====== PHASE 2 — WORK SAMPLES ====== */}
+        <TabsContent value="workSamples" className="mt-4 space-y-4">
           <Card className="glass-card">
             <CardHeader>
-              <CardTitle className="text-sm">Code Interview Results</CardTitle>
-              <CardDescription>Phase 2 — Work sample review and coding interview performance.</CardDescription>
+              <CardTitle className="text-sm">Phase 2 — Work Sample Review</CardTitle>
+              <CardDescription>Review mentor's portfolio, GitHub repos, and project samples. Single submission — no retries.</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {workSamples && workSamples.length > 0 ? (
+                <div className="space-y-3">
+                  {workSamples.map(ws => (
+                    <div key={ws.id} className="p-4 rounded-lg border border-border/50 bg-muted/20 space-y-3">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-sm font-medium">{ws.title}</p>
+                          <p className="text-xs text-muted-foreground">{ws.description}</p>
+                        </div>
+                        {ws.link && (
+                          <Button variant="outline" size="sm" asChild className="gap-1.5">
+                            <a href={ws.link} target="_blank" rel="noopener noreferrer"><ExternalLink className="h-3 w-3" /> View</a>
+                          </Button>
+                        )}
+                      </div>
+                      {ws.images && ws.images.length > 0 && (
+                        <div className="flex gap-2 flex-wrap">
+                          {ws.images.map((img, i) => (
+                            <a key={i} href={img} target="_blank" rel="noopener noreferrer" className="block w-24 h-24 rounded-lg overflow-hidden border border-border/50 hover:border-primary/50 transition-colors">
+                              <img src={img} alt={`Sample ${i + 1}`} className="w-full h-full object-cover" />
+                            </a>
+                          ))}
+                        </div>
+                      )}
+                      <div className="flex gap-2 text-xs text-muted-foreground">
+                        {ws.dateStarted && <span>Started: {new Date(ws.dateStarted).toLocaleDateString()}</span>}
+                        {ws.dateEnded && <span>· Ended: {new Date(ws.dateEnded).toLocaleDateString()}</span>}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-sm text-muted-foreground text-center py-8">Mentor has not submitted work samples yet.</p>
+              )}
+
+              {/* Phase 2 approval actions — only show if phase 2 is active */}
+              {screening.assessmentPassed && screening.currentPhase <= 2 && screening.status !== 'FAILED' && screening.status !== 'COMPLETED' && (
+                <div className="flex gap-3 justify-end pt-4 border-t border-border/50">
+                  <Button variant="outline" className="text-destructive border-destructive/30" onClick={handleRejectWorkSamples} disabled={rejecting || approving}>
+                    {rejecting ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <XCircle className="h-4 w-4 mr-2" />}
+                    Reject Samples
+                  </Button>
+                  <Button className="gradient-primary" onClick={handleApproveWorkSamples} disabled={approving || rejecting || !workSamples?.length}>
+                    {approving ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <CheckCircle className="h-4 w-4 mr-2" />}
+                    Approve & Unlock Phase 3
+                  </Button>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* ====== PHASE 3 — QBOT ====== */}
+        <TabsContent value="qbot" className="mt-4 space-y-4">
+          <Card className="glass-card">
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle className="text-sm">Phase 3 — QBot AI Coding Interview</CardTitle>
+                  <CardDescription>AI-powered coding interview. Max 2 retries (3 total attempts).</CardDescription>
+                </div>
+                {canAccessPhase(3) && !screening.qBotPassed && screening.status !== 'FAILED' && (
+                  <Button size="sm" className="gap-1.5 gradient-primary" onClick={handleCreateQbot} disabled={createQbot.isPending}>
+                    {createQbot.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Plus className="h-3.5 w-3.5" />}
+                    Create QBot Interview
+                  </Button>
+                )}
+              </div>
             </CardHeader>
             <CardContent className="space-y-3">
-              {screening.codeInterviews && screening.codeInterviews.length > 0 ? (
-                screening.codeInterviews.map(ci => (
-                  <div key={ci.id} className="flex items-center justify-between p-3 rounded-lg bg-muted/30">
-                    <div>
-                      <p className="text-sm font-medium">{ci.title}</p>
-                      <p className="text-xs text-muted-foreground">{ci.status} · {ci.durationMinutes}min · Cutoff: {ci.passCutoff}%</p>
+              {screening.qbots && screening.qbots.length > 0 ? (
+                screening.qbots.map(q => (
+                  <div key={q.id} className="p-4 rounded-lg bg-muted/30 space-y-3">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-sm font-medium">QBot Interview</p>
+                        <p className="text-xs text-muted-foreground">
+                          {q.status} · Started: {q.startedAt ? new Date(q.startedAt).toLocaleDateString() : 'Not started'}
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        {!q.startedAt && (
+                          <Button size="sm" variant="outline" onClick={() => startQbot.mutateAsync(q.id).then(() => refetch())} disabled={startQbot.isPending}>
+                            Start Interview
+                          </Button>
+                        )}
+                        <Badge className={q.satisfactory ? 'bg-green-500/10 text-green-400 border-green-500/20' : 'bg-destructive/10 text-destructive border-destructive/20'}>
+                          {q.satisfactory ? 'Satisfactory' : 'Not Satisfactory'}
+                        </Badge>
+                      </div>
                     </div>
-                    <div className="flex items-center gap-3">
-                      {ci.score != null && <span className="text-sm font-semibold">{ci.score}%</span>}
-                      <Badge className={ci.passed ? 'bg-green-500/10 text-green-400 border-green-500/20' : ''}>
-                        {ci.passed ? 'Passed' : ci.status}
-                      </Badge>
-                    </div>
+                    {q.report && <p className="text-xs text-muted-foreground bg-muted/20 rounded p-2">{q.report}</p>}
+                    {q.questionnaires && q.questionnaires.length > 0 && (
+                      <div className="space-y-2 pt-2 border-t border-border/30">
+                        <p className="text-xs text-muted-foreground font-medium">{q.questionnaires.length} Questions</p>
+                        {q.questionnaires.map(qn => (
+                          <div key={qn.id} className="text-xs p-2 rounded bg-muted/20">
+                            <p className="font-medium">Q: {qn.question}</p>
+                            {qn.answers && (
+                              <div className="mt-1">
+                                <p className="text-muted-foreground">A: {qn.answers.answer_text}</p>
+                                {qn.answers.summary && <p className="text-muted-foreground italic mt-0.5">Summary: {qn.answers.summary}</p>}
+                              </div>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 ))
               ) : (
-                <p className="text-sm text-muted-foreground text-center py-4">No code interviews yet.</p>
+                <p className="text-sm text-muted-foreground text-center py-4">No QBot interviews yet. Create one to start Phase 3.</p>
               )}
+
+              {/* QBot retry requests */}
+              {screening.qbots?.some(q => !q.satisfactory) && (
+                <div className="space-y-2 pt-4 border-t border-border/50">
+                  <p className="text-xs text-muted-foreground font-medium flex items-center gap-1.5"><RefreshCw className="h-3 w-3" /> QBot Retry Management</p>
+                  <p className="text-xs text-muted-foreground">Retries used: {screening.qBotRetries}/2</p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* ====== PHASE 4 — FINAL REVIEW (LIVE CODE INTERVIEW) ====== */}
+        <TabsContent value="final" className="mt-4 space-y-4">
+          <Card className="glass-card">
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle className="text-sm">Phase 4 — Final Review (Live Code Interview)</CardTitle>
+                  <CardDescription>Conduct live code interview with mentor using the in-browser editor, then approve or reject.</CardDescription>
+                </div>
+                <div className="flex gap-2">
+                  {canAccessPhase(4) && screening.status !== 'COMPLETED' && screening.status !== 'FAILED' && (
+                    <>
+                      {!showCreateCI && (
+                        <Button size="sm" variant="outline" onClick={() => setShowCreateCI(true)} className="gap-1.5">
+                          <Plus className="h-3.5 w-3.5" /> Create Code Interview
+                        </Button>
+                      )}
+                      <Button size="sm" variant={showCodeEditor ? 'default' : 'outline'} onClick={() => setShowCodeEditor(!showCodeEditor)} className="gap-1.5">
+                        <Code className="h-3.5 w-3.5" /> {showCodeEditor ? 'Hide Editor' : 'Open Code Editor'}
+                      </Button>
+                    </>
+                  )}
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {/* Create Code Interview Form */}
+              {showCreateCI && (
+                <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} className="p-4 rounded-lg border border-primary/20 bg-primary/5 space-y-3">
+                  <p className="text-sm font-medium">Create Code Interview</p>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-1">
+                      <Label className="text-xs">Title</Label>
+                      <Input value={ciTitle} onChange={e => setCiTitle(e.target.value)} placeholder="Live Code Interview" className="h-8 text-sm" />
+                    </div>
+                    <div className="space-y-1">
+                      <Label className="text-xs">Pass Cutoff (%)</Label>
+                      <Input type="number" value={ciPassCutoff} onChange={e => setCiPassCutoff(e.target.value)} className="h-8 text-sm" />
+                    </div>
+                    <div className="space-y-1">
+                      <Label className="text-xs">Duration (min)</Label>
+                      <Input type="number" value={ciDuration} onChange={e => setCiDuration(e.target.value)} className="h-8 text-sm" />
+                    </div>
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-xs">Description</Label>
+                    <Textarea value={ciDescription} onChange={e => setCiDescription(e.target.value)} rows={2} className="text-sm" placeholder="Describe the code interview..." />
+                  </div>
+                  <div className="flex gap-2 justify-end">
+                    <Button size="sm" variant="ghost" onClick={() => setShowCreateCI(false)}>Cancel</Button>
+                    <Button size="sm" onClick={handleCreateCodeInterview} disabled={createCodeInterview.isPending || !ciTitle} className="gradient-primary">
+                      {createCodeInterview.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin mr-1" /> : null}
+                      Create
+                    </Button>
+                  </div>
+                </motion.div>
+              )}
+
+              {/* Existing Code Interviews */}
+              {screening.codeInterviews && screening.codeInterviews.length > 0 ? (
+                screening.codeInterviews.map(ci => (
+                  <div key={ci.id} className="p-3 rounded-lg bg-muted/30 space-y-2">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-sm font-medium">{ci.title}</p>
+                        <p className="text-xs text-muted-foreground">{ci.status} · {ci.durationMinutes}min · Cutoff: {ci.passCutoff}%</p>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        {ci.score != null && <span className="text-sm font-semibold">{ci.score}%</span>}
+                        <Badge className={ci.passed ? 'bg-green-500/10 text-green-400 border-green-500/20' : ''}>
+                          {ci.passed ? 'Passed' : ci.status}
+                        </Badge>
+                      </div>
+                    </div>
+                    {ci.tasks && ci.tasks.length > 0 && (
+                      <div className="space-y-1 pt-2 border-t border-border/30">
+                        <p className="text-xs text-muted-foreground font-medium">Tasks ({ci.tasks.length})</p>
+                        {ci.tasks.map(t => (
+                          <div key={t.id} className="text-xs p-2 rounded bg-muted/20">
+                            <p>Points: {t.points}</p>
+                            <ul className="list-disc list-inside text-muted-foreground">
+                              {t.requirements?.map((r, ri) => <li key={ri}>{r}</li>)}
+                            </ul>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                ))
+              ) : (
+                <p className="text-sm text-muted-foreground text-center py-2">No code interviews created yet.</p>
+              )}
+
+              {/* Code Interview Attempt Requests */}
               {screening.codeInterviewAttempts && screening.codeInterviewAttempts.length > 0 && (
                 <div className="space-y-2 pt-4 border-t border-border/50">
                   <p className="text-xs text-muted-foreground font-medium flex items-center gap-1.5"><RefreshCw className="h-3 w-3" /> Attempt Requests</p>
@@ -293,117 +592,96 @@ export default function ScreeningReviewPage() {
                   ))}
                 </div>
               )}
-            </CardContent>
-          </Card>
-        </TabsContent>
 
-        {/* QBot Tab */}
-        <TabsContent value="qbot" className="mt-4 space-y-4">
-          <Card className="glass-card">
-            <CardHeader>
-              <CardTitle className="text-sm">QBot AI Interview</CardTitle>
-              <CardDescription>Phase 3 — AI-powered coding interview results.</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              {screening.qbots && screening.qbots.length > 0 ? (
-                screening.qbots.map(q => (
-                  <div key={q.id} className="p-3 rounded-lg bg-muted/30 space-y-2">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="text-sm font-medium">QBot Interview</p>
-                        <p className="text-xs text-muted-foreground">{q.status} · Started: {q.startedAt ? new Date(q.startedAt).toLocaleDateString() : 'Not started'}</p>
+              {/* Supervisor Review History */}
+              {screening.supervisorReviews && screening.supervisorReviews.length > 0 && (
+                <div className="space-y-2 pt-4 border-t border-border/50">
+                  <p className="text-xs text-muted-foreground font-medium">Previous Reviews</p>
+                  {screening.supervisorReviews.map(sr => (
+                    <div key={sr.id} className="p-3 rounded-lg bg-muted/30 space-y-1">
+                      <div className="flex items-center justify-between">
+                        <p className="text-sm font-medium">Review #{sr.id.slice(0, 8)}</p>
+                        <Badge className={
+                          sr.decision === 'approved' ? 'bg-green-500/10 text-green-400 border-green-500/20' :
+                          sr.decision === 'rejected' ? 'bg-destructive/10 text-destructive border-destructive/20' :
+                          'bg-primary/10 text-primary border-primary/20'
+                        }>{sr.decision}</Badge>
                       </div>
-                      <Badge className={q.satisfactory ? 'bg-green-500/10 text-green-400 border-green-500/20' : 'bg-destructive/10 text-destructive border-destructive/20'}>
-                        {q.satisfactory ? 'Satisfactory' : 'Not Satisfactory'}
-                      </Badge>
+                      {sr.comments && <p className="text-xs text-muted-foreground">{sr.comments}</p>}
+                      {sr.evaluation_summary && (
+                        <div className="text-xs p-2 rounded bg-muted/20">
+                          <p><span className="font-medium">Result:</span> {sr.evaluation_summary.passed ? 'Passed' : 'Failed'}</p>
+                          <p><span className="font-medium">Report:</span> {sr.evaluation_summary.report}</p>
+                        </div>
+                      )}
                     </div>
-                    {q.report && <p className="text-xs text-muted-foreground bg-muted/20 rounded p-2">{q.report}</p>}
-                    {q.questionnaires && q.questionnaires.length > 0 && (
-                      <div className="space-y-1.5 pt-2 border-t border-border/30">
-                        <p className="text-xs text-muted-foreground">{q.questionnaires.length} questions asked</p>
-                      </div>
-                    )}
-                  </div>
-                ))
-              ) : (
-                <p className="text-sm text-muted-foreground text-center py-4">QBot interview not completed yet.</p>
+                  ))}
+                </div>
               )}
-            </CardContent>
-          </Card>
-        </TabsContent>
 
-        {/* Final Review Tab */}
-        <TabsContent value="final" className="mt-4 space-y-4">
-          <Card className="glass-card">
-            <CardHeader>
-              <CardTitle className="text-sm">Final Supervisor Review</CardTitle>
-              <CardDescription>Phase 4 — Final approval or rejection by supervisor.</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              {screening.supervisorReviews && screening.supervisorReviews.length > 0 ? (
-                screening.supervisorReviews.map(sr => (
-                  <div key={sr.id} className="p-3 rounded-lg bg-muted/30 space-y-2">
-                    <div className="flex items-center justify-between">
-                      <p className="text-sm font-medium">Review #{sr.id.slice(0, 8)}</p>
-                      <Badge className={
-                        sr.decision === 'approved' ? 'bg-green-500/10 text-green-400 border-green-500/20' :
-                        sr.decision === 'rejected' ? 'bg-destructive/10 text-destructive border-destructive/20' :
-                        'bg-primary/10 text-primary border-primary/20'
-                      }>{sr.decision}</Badge>
-                    </div>
-                    {sr.comments && <p className="text-xs text-muted-foreground">{sr.comments}</p>}
-                    {sr.evaluation_summary && (
-                      <div className="text-xs p-2 rounded bg-muted/20">
-                        <p><span className="font-medium">Result:</span> {sr.evaluation_summary.passed ? 'Passed' : 'Failed'}</p>
-                        <p><span className="font-medium">Report:</span> {sr.evaluation_summary.report}</p>
-                      </div>
-                    )}
-                    <p className="text-[10px] text-muted-foreground">
-                      {sr.review_started_at && `Started: ${new Date(sr.review_started_at).toLocaleString()}`}
-                      {sr.review_completed_at && ` · Completed: ${new Date(sr.review_completed_at).toLocaleString()}`}
-                    </p>
+              {/* Final review form — only if all phases done and no reviews yet */}
+              {allPhasesComplete && screening.status !== 'COMPLETED' && screening.status !== 'FAILED' && (
+                <div className="space-y-3 pt-4 border-t border-border/50">
+                  <div className="space-y-2">
+                    <Label className="text-sm">Review Report</Label>
+                    <Textarea value={reviewReport} onChange={e => setReviewReport(e.target.value)} placeholder="Write your evaluation report..." rows={3} />
                   </div>
-                ))
-              ) : (
-                <div className="space-y-4">
-                  <p className="text-sm text-muted-foreground text-center py-2">No final reviews submitted yet.</p>
-                  {screening.status !== 'COMPLETED' && screening.status !== 'FAILED' && (
-                    <>
-                      <div className="space-y-2">
-                        <Label className="text-sm">Review Report</Label>
-                        <Textarea value={reviewReport} onChange={e => setReviewReport(e.target.value)} placeholder="Write your evaluation report..." rows={3} />
-                      </div>
-                      <div className="space-y-2">
-                        <Label className="text-sm">Comments</Label>
-                        <Textarea value={reviewComments} onChange={e => setReviewComments(e.target.value)} placeholder="Additional comments..." rows={2} />
-                      </div>
-                    </>
-                  )}
+                  <div className="space-y-2">
+                    <Label className="text-sm">Comments</Label>
+                    <Textarea value={reviewComments} onChange={e => setReviewComments(e.target.value)} placeholder="Additional comments..." rows={2} />
+                  </div>
                 </div>
               )}
             </CardContent>
           </Card>
+
+          {/* Code Editor — loaded on demand */}
+          {showCodeEditor && (
+            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
+              <Card className="glass-card overflow-hidden">
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm flex items-center gap-2"><Code className="h-4 w-4" /> Live Code Editor</CardTitle>
+                  <CardDescription>Review mentor's code in real-time during the interview.</CardDescription>
+                </CardHeader>
+                <CardContent className="p-0">
+                  <div className="h-[600px] border-t border-border">
+                    <Suspense fallback={<div className="flex items-center justify-center h-full"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>}>
+                      <CodeWorkspace submitUrl="" editable={true} />
+                    </Suspense>
+                  </div>
+                </CardContent>
+              </Card>
+            </motion.div>
+          )}
         </TabsContent>
       </Tabs>
 
-      {/* Action Buttons */}
-      {screening.status !== 'COMPLETED' && screening.status !== 'FAILED' && (
+      {/* Final Action Buttons — Approve/Reject Mentor */}
+      {allPhasesComplete && screening.status !== 'COMPLETED' && screening.status !== 'FAILED' && (
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}>
-          <Card className="glass-card">
-            <CardContent className="p-4 flex gap-3 justify-end">
-              <Button
-                variant="outline"
-                className="text-destructive border-destructive/30 hover:bg-destructive/10"
-                onClick={handleReject}
-                disabled={rejecting || approving}
-              >
-                {rejecting ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <XCircle className="h-4 w-4 mr-2" />}
-                Reject Mentor
-              </Button>
-              <Button className="gradient-primary" onClick={handleApprove} disabled={approving || rejecting}>
-                {approving ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <CheckCircle className="h-4 w-4 mr-2" />}
-                Approve Mentor
-              </Button>
+          <Card className="glass-card border-primary/20">
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium">All phases complete — Final Decision</p>
+                  <p className="text-xs text-muted-foreground">Approving will certify this mentor to create programs.</p>
+                </div>
+                <div className="flex gap-3">
+                  <Button
+                    variant="outline"
+                    className="text-destructive border-destructive/30 hover:bg-destructive/10"
+                    onClick={handleReject}
+                    disabled={rejecting || approving}
+                  >
+                    {rejecting ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <XCircle className="h-4 w-4 mr-2" />}
+                    Reject Mentor
+                  </Button>
+                  <Button className="gradient-primary" onClick={handleApprove} disabled={approving || rejecting}>
+                    {approving ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <CheckCircle className="h-4 w-4 mr-2" />}
+                    Approve & Certify
+                  </Button>
+                </div>
+              </div>
             </CardContent>
           </Card>
         </motion.div>
