@@ -27,6 +27,8 @@ import {
   HomeworkRoutes,
   ClassworkRoutes,
   OutlineRoutes,
+  ObjectiveAssessmentRoutes,
+  TheoryAssessmentRoutes,
 } from './routes';
 
 import type {
@@ -57,7 +59,10 @@ import type {
   Homework,
   Classwork,
   ProgramOutline,
-  SessionPresence,
+  ObjectiveAssessment,
+  ObjectiveAssessmentQuestion,
+  TheoryAssessment,
+  TheoryAssessmentQuestion,
 } from './models';
 
 import type {
@@ -78,6 +83,8 @@ import type {
   UpdateProjectSubmissionStatusDto,
   CreateNotifyDto,
   UpdateMentorComplaintDto,
+  CreateObjectiveAssessmentDto,
+  CreateTheoryAssessmentQuestionDto,
 } from './dto';
 
 export { BASE_URL } from './routes';
@@ -133,6 +140,45 @@ export const assessmentService = {
   approveRetry: (id: string) => apiClient.post<void>(AssessmentRoutes.approveRetry(id)),
 };
 
+// ==================== OBJECTIVE ASSESSMENT ====================
+export const objectiveAssessmentService = {
+  create: (assessmentId: string) => apiClient.post<ObjectiveAssessment>(ObjectiveAssessmentRoutes.create(assessmentId)),
+  findOne: (id: string) => apiClient.get<ObjectiveAssessment>(ObjectiveAssessmentRoutes.findOne(id)),
+  findAll: () => apiClient.get<ObjectiveAssessment[]>(ObjectiveAssessmentRoutes.findAll()),
+  findQuestions: (id: string) => apiClient.get<ObjectiveAssessmentQuestion[]>(ObjectiveAssessmentRoutes.findAllQuestions(id)),
+  createQuestion: (data: CreateObjectiveAssessmentDto) =>
+    apiClient.post<ObjectiveAssessmentQuestion>(ObjectiveAssessmentRoutes.createQuestion(), data),
+  createQuestionAgent: (oaId: string) =>
+    apiClient.post<ObjectiveAssessmentQuestion>(ObjectiveAssessmentRoutes.createQuestionAgent(oaId)),
+  createManyAgent: (oaId: string) =>
+    apiClient.post<ObjectiveAssessmentQuestion[]>(ObjectiveAssessmentRoutes.createManyAgent(oaId)),
+  updateQuestion: (id: string, data: Partial<CreateObjectiveAssessmentDto>) =>
+    apiClient.patch<ObjectiveAssessmentQuestion>(ObjectiveAssessmentRoutes.updateQuestion(id), data),
+  deleteQuestion: (id: string) => apiClient.delete<DeleteResult>(ObjectiveAssessmentRoutes.deleteQuestion(id)),
+  remove: (id: string) => apiClient.delete<DeleteResult>(ObjectiveAssessmentRoutes.remove(id)),
+  start: (assessmentId: string) => apiClient.post<void>(ObjectiveAssessmentRoutes.start(assessmentId)),
+  stop: (assessmentId: string) => apiClient.post<void>(ObjectiveAssessmentRoutes.stop(assessmentId)),
+};
+
+// ==================== THEORY ASSESSMENT ====================
+export const theoryAssessmentService = {
+  create: (assessmentId: string) => apiClient.post<TheoryAssessment>(TheoryAssessmentRoutes.create(assessmentId)),
+  findOne: (id: string) => apiClient.get<TheoryAssessment>(TheoryAssessmentRoutes.findOne(id)),
+  findAll: () => apiClient.get<TheoryAssessment[]>(TheoryAssessmentRoutes.findAll()),
+  findQuestions: (taId: string) => apiClient.get<TheoryAssessmentQuestion[]>(TheoryAssessmentRoutes.findAllQuestions(taId)),
+  createQuestion: (data: CreateTheoryAssessmentQuestionDto) =>
+    apiClient.post<TheoryAssessmentQuestion>(TheoryAssessmentRoutes.createQuestion(), data),
+  createQuestionAgent: (taId: string) =>
+    apiClient.post<TheoryAssessmentQuestion>(TheoryAssessmentRoutes.createQuestionAgent(taId)),
+  createManyAgent: (taId: string, mentorId: string, n: number) =>
+    apiClient.post<TheoryAssessmentQuestion[]>(TheoryAssessmentRoutes.createManyAgent(taId, mentorId, n)),
+  updateQuestion: (id: string, data: Partial<CreateTheoryAssessmentQuestionDto>) =>
+    apiClient.patch<TheoryAssessmentQuestion>(TheoryAssessmentRoutes.updateQuestion(id), data),
+  remove: (id: string) => apiClient.delete<DeleteResult>(TheoryAssessmentRoutes.remove(id)),
+  start: (assessmentId: string) => apiClient.post<void>(TheoryAssessmentRoutes.start(assessmentId)),
+  stop: (assessmentId: string) => apiClient.post<void>(TheoryAssessmentRoutes.stop(assessmentId)),
+};
+
 // ==================== CODE INTERVIEW ====================
 export const codeInterviewService = {
   findAll: () => apiClient.get<CodeInterview[]>(CodingWorkspaceRoutes.findAllCodeInterviews()),
@@ -142,6 +188,10 @@ export const codeInterviewService = {
   remove: (id: string) => apiClient.delete<DeleteResult>(CodingWorkspaceRoutes.removeCodeInterview(id)),
   approveAttempt: (id: string) => apiClient.patch<void>(CodingWorkspaceRoutes.approveAttempt(id)),
   rejectAttempt: (id: string) => apiClient.patch<void>(CodingWorkspaceRoutes.rejectAttempt(id)),
+  createTask: (data: { code_interview_id: string; requirements?: string[]; points?: number }) =>
+    apiClient.post<any>(CodingWorkspaceRoutes.createTask(), data),
+  updateTask: (id: string, data: any) => apiClient.patch<any>(CodingWorkspaceRoutes.updateTask(id), data),
+  removeTask: (id: string) => apiClient.delete<DeleteResult>(CodingWorkspaceRoutes.removeTask(id)),
 };
 
 // ==================== MENTOR COMPLAINTS ====================
@@ -174,8 +224,14 @@ export const reviewService = {
 
 // ==================== QBOT ====================
 export const qbotService = {
+  create: (screeningId: string) => apiClient.post<Qbot>(QbotRoutes.create(screeningId)),
   findAll: () => apiClient.get<Qbot[]>(QbotRoutes.findAll()),
   findOne: (id: string) => apiClient.get<Qbot>(QbotRoutes.findOne(id)),
+  generateAiQuestion: (qbotId: string, mentorId: string) =>
+    apiClient.post<any>(QbotRoutes.generateAiQuestion(qbotId, mentorId)),
+  generateManyAi: (qbotId: string, mentorId: string) =>
+    apiClient.post<any>(QbotRoutes.generateManyAi(qbotId, mentorId)),
+  startInterview: (qbotId: string) => apiClient.post<void>(QbotRoutes.startInterview(qbotId)),
   approveRetry: (retryId: string) => apiClient.patch<void>(QbotRoutes.approveRetry(retryId)),
   rejectRetry: (retryId: string) => apiClient.patch<void>(QbotRoutes.rejectRetry(retryId)),
 };
@@ -217,7 +273,9 @@ export const challengeService = {
 
 // ==================== WORK SAMPLES ====================
 export const workSampleService = {
+  findAll: () => apiClient.get<WorkSample[]>(WorkSampleRoutes.findAll()),
   findByMentor: (mentorId: string) => apiClient.get<WorkSample[]>(WorkSampleRoutes.findByMentor(mentorId)),
+  findOne: (id: string) => apiClient.get<WorkSample>(WorkSampleRoutes.findOne(id)),
 };
 
 // ==================== EXAMS ====================

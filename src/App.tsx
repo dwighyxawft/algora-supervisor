@@ -19,6 +19,7 @@ import MentorProfilePage from "@/pages/supervisor/MentorProfilePage";
 import MentorPerformancePage from "@/pages/supervisor/MentorPerformancePage";
 import ScreeningDashboardPage from "@/pages/supervisor/ScreeningDashboardPage";
 import CreateScreeningPage from "@/pages/supervisor/CreateScreeningPage";
+import CreateAssessmentPage from "@/pages/supervisor/CreateAssessmentPage";
 import ScreeningReviewPage from "@/pages/supervisor/ScreeningReviewPage";
 import ComplaintsPage from "@/pages/supervisor/ComplaintsPage";
 import ComplaintDetailPage from "@/pages/supervisor/ComplaintDetailPage";
@@ -58,6 +59,7 @@ const App = () => (
                 <Route path="/supervisor/screening" element={<ScreeningDashboardPage />} />
                 <Route path="/supervisor/screening/create" element={<CreateScreeningPage />} />
                 <Route path="/supervisor/screening/:id" element={<ScreeningReviewPage />} />
+                <Route path="/supervisor/screening/:screeningId/assessment/create" element={<CreateAssessmentPage />} />
                 <Route path="/supervisor/complaints" element={<ComplaintsPage />} />
                 <Route path="/supervisor/complaints/:id" element={<ComplaintDetailPage />} />
                 <Route path="/supervisor/reviews" element={<ReviewsPage />} />
