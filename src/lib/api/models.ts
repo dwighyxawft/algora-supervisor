@@ -48,21 +48,22 @@ export enum ClassworkType {
 }
 
 export enum MasteryLevel {
-  LOW = 'LOW',
-  MEDIUM = 'MEDIUM',
-  HIGH = 'HIGH',
+  LOW = 'low',
+  MEDIUM = 'medium',
+  HIGH = 'high',
 }
 
 export enum LearningMode {
-  TEACH = 'TEACH',
-  REVISE = 'REVISE',
-  ASSESS = 'ASSESS',
+  TEACH = 'teach',
+  REVISE = 'revise',
+  PRACTICE = 'practice',
+  ASSESS = 'assess',
 }
 
 export enum LearningStatus {
-  ACTIVE = 'ACTIVE',
-  PAUSED = 'PAUSED',
-  COMPLETED = 'COMPLETED',
+  ACTIVE = 'active',
+  PAUSED = 'paused',
+  COMPLETED = 'completed',
 }
 
 export enum ProgressStatus {
@@ -88,6 +89,16 @@ export enum SupervisorRank {
   DIAMOND = 'DIAMOND',
   MASTER = 'MASTER',
   LEGEND = 'LEGEND',
+}
+
+export enum SupervisorRankNo {
+  BRONZE = 1,
+  SILVER = 2,
+  GOLD = 3,
+  PLATINUM = 4,
+  DIAMOND = 5,
+  MASTER = 6,
+  LEGEND = 7,
 }
 
 export enum RootRole {
@@ -119,20 +130,25 @@ export enum ExamStatus {
 }
 
 export enum ProjectDurationType {
+  Minutes = 'Minutes',
   Hours = 'Hours',
   Days = 'Days',
   Weeks = 'Weeks',
 }
 
 export enum UserSittedStatus {
+  Pending = 'Pending',
   Ongoing = 'Ongoing',
   Submitted = 'Submitted',
   Reviewed = 'Reviewed',
+  Passed = 'Passed',
+  Failed = 'Failed',
 }
 
 export enum PaymentType {
-  PROGRAM = 'program',
-  EXAM = 'exam',
+  PROGRAM = 'program_fee',
+  EXAM = 'exam_fee',
+  TOTAL = 'total_fee'
 }
 
 export enum PaymentStatus {
@@ -142,8 +158,11 @@ export enum PaymentStatus {
 }
 
 export enum ProjectStatus {
-  DRAFT = 'DRAFT',
-  PUBLISHED = 'PUBLISHED',
+  DRAFT = 'draft',
+  SUBMITTED = 'submitted',
+  RUNNING = 'running',
+  COMPLETED = 'completed',
+  FAILED = 'failed',
 }
 
 export enum ComplaintStatus {
@@ -274,6 +293,18 @@ export interface ProgramCategory {
   programs?: Program[];
   createdAt: Date;
   updatedAt: Date;
+}
+
+export interface Certificate {
+  id: string;
+  link: string;
+  issuedAt: Date;
+  internId: string;
+  programId: string;
+  programBatchId: string;
+  intern?: Intern;
+  program?: Program;
+  batch?: ProgramBatch;
 }
 
 export interface Challenge {
@@ -435,18 +466,19 @@ export interface ContactComplaint {
 export interface Exam {
   id: string;
   title: string;
+  firstExamType: 'objective' | 'theory';
   firstExamStartTime: Date;
   firstExamEndTime: Date;
   secondExamStartTime: Date;
   secondExamEndTime: Date;
   duration: number;
-  programBatchId: string;
-  group?: ProgramBatch;
   status: ExamStatus;
   mentorId: string;
   mentor?: Mentor;
   programId: string;
   program?: Program;
+  programBatchId: string;
+  group?: ProgramBatch;
   theory?: TheoryExam[];
   objective?: ObjectiveExam[];
   projectExam?: ProjectExam;
@@ -493,9 +525,15 @@ export interface ExamAttendance {
   exam?: Exam;
   internId: string;
   intern?: Intern;
-  startedAt?: Date;
-  endedAt?: Date;
-  finalScore?: number;
+  startedFirstExamAt?: Date;
+  startedSecondExamAt?: Date;
+  endedFirstExamAt?: Date;
+  endedSecondExamAt?: Date;
+  firstExamFinalScore?: number;
+  secondExamFinalScore?: number;
+  firstExamIsCompleted?: boolean;
+  secondExamIsCompleted?: boolean;
+  finalScore: number;
   isCompleted: boolean;
   createdAt: Date;
   updatedAt: Date;
@@ -556,6 +594,7 @@ export interface ProgramBatch {
   schedules?: Schedule[];
   exam?: Exam;
   classDays?: ClassDay[];
+  certificates?: Certificate[];
   onboarding?: InternProgramOnboarding[];
   createdAt: Date;
   updatedAt: Date;
@@ -731,11 +770,10 @@ export interface Mentor {
   reviews?: MentorReview[];
   exams?: Exam[];
   homeworks?: Homework[];
+  programMessages?: ProgramMessage[];
   createdAt: Date;
   updatedAt: Date;
 }
-
-// ==================== MENTOR COMPLAINT ====================
 
 export interface MentorComplaint {
   id: string;
@@ -750,8 +788,6 @@ export interface MentorComplaint {
   createdAt: Date;
   updatedAt: Date;
 }
-
-// ==================== MENTOR REVIEW ====================
 
 export interface MentorReview {
   id: string;
@@ -842,6 +878,7 @@ export interface ObjectiveExam {
   examId: string;
   exam?: Exam;
   scorePerQuestion?: number;
+  durationInMinutes: number;
   questions?: ObjectiveExamQuestion[];
   createdAt: Date;
   updatedAt: Date;
@@ -850,21 +887,21 @@ export interface ObjectiveExam {
 export interface ObjectiveExamQuestion {
   id: string;
   text: string;
-  correctTag: string;
+  correctTag: number;
   options?: ObjectiveExamOption[];
 }
 
 export interface ObjectiveExamOption {
   id: string;
   text: string;
-  tag: string;
+  tag: number;
 }
 
 export interface ObjectiveExamAnswer {
   id: string;
   questionId: string;
   internId: string;
-  selectedTag: string;
+  selectedOption: number;
   isCorrect: boolean;
 }
 
@@ -882,6 +919,7 @@ export interface OnboardPayment {
   paymentChannel?: string;
   gatewayResponse?: string;
   createdAt: Date;
+  updatedAt: Date;
 }
 
 export interface InternProgramOnboarding {
@@ -1169,6 +1207,7 @@ export interface TheoryAssessmentAnswer {
 export interface TheoryExam {
   id: string;
   scorePerQuestion?: number;
+  durationInMinutes: number;
   questions?: TheoryExamQuestion[];
   examId: string;
   exam?: Exam;
@@ -1208,13 +1247,12 @@ export interface WorkSample {
   description: string;
   images?: string[];
   link?: string;
+  status: 'accepted' | 'rejected' | 'pending';
   dateStarted?: Date;
   dateEnded?: Date;
   createdAt: Date;
   updatedAt: Date;
 }
-
-// ==================== GENERIC RESULTS ====================
 
 export interface DeleteResult {
   affected?: number;

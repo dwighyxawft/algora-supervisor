@@ -245,7 +245,7 @@ export function useCreateObjectiveAssessment() {
   const qc = useQueryClient();
   const { toast } = useToast();
   return useMutation({
-    mutationFn: (assessmentId: string) => objectiveAssessmentService.create(assessmentId),
+    mutationFn: ({ assessmentId, score }: { assessmentId: string; score: number }) => objectiveAssessmentService.create(assessmentId, score),
     onSuccess: () => { qc.invalidateQueries({ queryKey: ['assessments'] }); toast({ title: 'Objective assessment created' }); },
     onError: (e: Error) => toast({ title: 'Error', description: e.message, variant: 'destructive' }),
   });
@@ -274,7 +274,7 @@ export function useCreateTheoryAssessment() {
   const qc = useQueryClient();
   const { toast } = useToast();
   return useMutation({
-    mutationFn: (assessmentId: string) => theoryAssessmentService.create(assessmentId),
+    mutationFn: ({ assessmentId, score }: { assessmentId: string; score: number }) => theoryAssessmentService.create(assessmentId, score),
     onSuccess: () => { qc.invalidateQueries({ queryKey: ['assessments'] }); toast({ title: 'Theory assessment created' }); },
     onError: (e: Error) => toast({ title: 'Error', description: e.message, variant: 'destructive' }),
   });

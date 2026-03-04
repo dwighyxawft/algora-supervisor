@@ -52,13 +52,12 @@ export interface CreateAssessmentDto {
   mentor_id: string;
   title: string;
   description?: string;
-  startDateTime: Date;
-  endDateTime: Date;
+  startDateTime?: Date;
+  endDateTime?: Date;
   type: AssessmentType;
   status?: AssessmentStatus;
   durationMinutes: number;
   score?: number;
-  scorePerQuestion: number;
   passed?: boolean;
 }
 
@@ -217,6 +216,7 @@ export type UpdateContactComplaintDto = Partial<CreateContactComplaintDto>;
 
 export interface CreateExamDto {
   title: string;
+  firstExamType: 'objective' | 'theory';
   firstExamStartTime: string;
   firstExamEndTime: string;
   secondExamStartTime: string;
