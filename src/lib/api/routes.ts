@@ -136,9 +136,9 @@ export const CodingWorkspaceRoutes = {
   createTask:            () => url('coding-workspace/code-interview-task'),                  // POST
   updateTask:            (id: string) => url(`coding-workspace/code-interview-task/${id}`), // PATCH
   removeTask:            (id: string) => url(`coding-workspace/code-interview-task/${id}`), // DELETE
-  createAttempt:         () => url('coding-workspace/code-interview-attempt'),               // POST
-  approveAttempt:        (id: string) => url(`coding-workspace/code-interview-attempt/${id}/approve`), // PATCH
-  rejectAttempt:         (id: string) => url(`coding-workspace/code-interview-attempt/${id}/reject`),  // PATCH
+  createAttempt:         () => url('coding-workspace/retry'),               // POST
+  approveAttempt:        (id: string) => url(`coding-workspace/retry/${id}/approve`), // PATCH
+  rejectAttempt:         (id: string) => url(`coding-workspace/retry/${id}/reject`),  // PATCH
 } as const;
 
 // ==================== CONTACT COMPLAINT ====================
@@ -192,11 +192,20 @@ export const GroupRoutes = {
 // ==================== HOMEWORK ====================
 export const HomeworkRoutes = {
   create:     () => url('homework'),                          // POST
-  submission: () => url('homework/submission'),                // POST (multipart)
+  submission: () => url('homework/submit'),                // POST (multipart)
   findAll:    () => url('homework'),                          // GET
   findOne:    (id: string) => url(`homework/${id}`),          // GET
   update:     (id: string) => url(`homework/${id}`),          // PATCH
   remove:     (id: string) => url(`homework/${id}`),          // DELETE
+} as const;
+
+// ==================== HONOR ====================
+export const HonorRoutes = {
+  create:  () => url('honor'),                                // POST
+  findAll: () => url('honor'),                                // GET
+  findOne: (id: string) => url(`honor/${id}`),                // GET
+  update:  (id: string) => url(`honor/${id}`),                // PATCH
+  remove:  (id: string) => url(`honor/${id}`),                // DELETE
 } as const;
 
 // ==================== INTERN ====================
@@ -206,15 +215,15 @@ export const InternRoutes = {
   findAll:             () => url('intern'),                                   // GET
   findOne:             (id: string) => url(`intern/${id}`),                   // GET
   findByEmail:         () => url('intern/email/'),                            // GET (body: { email })
-  sendVerification:    () => url('intern/send-verification'),                 // POST
+  sendVerification:    () => url('intern/send-email'),                 // POST
   verifyEmail:         (id: string, token: string) => url(`intern/verify-email/${id}?token=${token}`), // GET
   forgotPassword:      () => url('intern/forgot-password'),                   // POST
-  checkResetToken:     (id: string, token: string) => url(`intern/check-reset/${id}?token=${token}`),  // GET
-  resetPassword:       (id: string, token: string) => url(`intern/reset-password/${id}?token=${token}`), // POST
+  checkResetToken:     (id: string, token: string) => url(`intern/reset-password/${id}/verify?token=${token}`),  // GET
+  resetPassword:       (id: string, token: string) => url(`intern/reset-password/${id}`), // PATCH
   update:              (id: string) => url(`intern/${id}`),                   // PATCH
-  updatePassword:      () => url('intern/update-password/'),                  // PATCH
-  updateEmail:         () => url('intern/update-email/'),                     // PATCH
-  updateImage:         () => url('intern/image/'),                            // PATCH (multipart)
+  updatePassword:      () => url('intern/password'),                  // PATCH
+  updateEmail:         () => url('intern/email'),                     // PATCH
+  updateImage:         () => url('intern/image'),                            // PATCH (multipart)
   remove:              (id: string) => url(`intern/${id}`),                   // DELETE
 } as const;
 
@@ -361,14 +370,13 @@ export const QbotRoutes = {
   findOne:              (id: string) => url(`qbot/${id}`),                                     // GET
   remove:               (id: string) => url(`qbot/${id}`),                                     // DELETE
   createQuestionnaire:  () => url('qbot/questionnaire'),                                        // POST
-  submitResponse:       () => url('qbot/response'),                                             // POST
-  findQuestionnaires:   (qbotId: string) => url(`qbot/${qbotId}/questionnaires`),              // GET
-  generateAiQuestion:   (qbotId: string, mentorId: string) => url(`qbot/${qbotId}/ai-question/${mentorId}`), // POST
-  generateManyAi:       (qbotId: string, mentorId: string) => url(`qbot/${qbotId}/ai-questions/${mentorId}`), // POST
-  startInterview:       (qbotId: string) => url(`qbot/${qbotId}/start`),                       // POST
-  retryInterview:       () => url('qbot/retry'),                                                // POST
-  approveRetry:         (retryId: string) => url(`qbot/retry/${retryId}/approve`),              // PATCH
-  rejectRetry:          (retryId: string) => url(`qbot/retry/${retryId}/reject`),               // PATCH
+  createResponse:       () => url('qbot/response'),                                             // POST
+  createRetry:          () => url('qbot/retry'),                                                // POST
+  approveRetry:         (retryId: string) => url(`qbot/retry/${retryId}`),              // PATCH
+  rejectRetry:          (retryId: string) => url(`qbot/retry/${retryId}`),               // PATCH
+  updateStatus:         (id: string) => url(`qbot/${id}/status`),                               // PATCH
+  generateManyAi:       (id: string, mentorId: string) => url(`qbot/${id}/ai-questions/${mentorId}`), // This might be custom, not in controller explicitly?
+  startInterview:       (id: string) => url(`qbot/${id}/start`), // This also seems assumed
 } as const;
 
 // ==================== SCHEDULE ====================
