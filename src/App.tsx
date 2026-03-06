@@ -60,10 +60,14 @@ const App = () => (
                 <Route path="/supervisor/mentors" element={<MentorListPage />} />
                 <Route path="/supervisor/mentors/:id" element={<MentorProfilePage />} />
                 <Route path="/supervisor/performance" element={<MentorPerformancePage />} />
-                <Route path="/supervisor/screening" element={<ScreeningDashboardPage />} />
+                <Route path="/supervisor/screening" element={<ScreeningReviewPage />} />
                 <Route path="/supervisor/screening/create" element={<CreateScreeningPage />} />
                 <Route path="/supervisor/screening/:id" element={<ScreeningReviewPage />} />
                 <Route path="/supervisor/screening/:screeningId/assessment/create" element={<CreateAssessmentPage />} />
+                <Route path="/supervisor/screening/:screeningId/assessment/:assessmentId/submission" element={<AssessmentSubmissionPage />} />
+                <Route path="/supervisor/screening/:screeningId/work-sample/:sampleId/preview" element={<WorkSamplePreviewPage />} />
+                <Route path="/supervisor/screening/:screeningId/qbot/:qbotId/response" element={<QbotResponsePage />} />
+                <Route path="/supervisor/screening/:screeningId/code-interview/:interviewId/submission" element={<CodeInterviewSubmissionPage />} />
                 <Route path="/supervisor/complaints" element={<ComplaintsPage />} />
                 <Route path="/supervisor/complaints/:id" element={<ComplaintDetailPage />} />
                 <Route path="/supervisor/reviews" element={<ReviewsPage />} />
