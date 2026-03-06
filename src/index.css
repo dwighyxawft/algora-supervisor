@@ -94,4 +94,7 @@
   .animate-glow {
     box-shadow: 0 0 20px hsl(217 91% 53% / 0.15), 0 0 60px hsl(217 91% 53% / 0.05);
   }
+  .mirror {
+    transform: scaleX(-1);
+  }
 }
