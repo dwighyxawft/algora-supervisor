@@ -279,6 +279,7 @@ export const workSampleService = {
   findAll: () => apiClient.get<WorkSample[]>(WorkSampleRoutes.findAll()),
   findByMentor: (mentorId: string) => apiClient.get<WorkSample[]>(WorkSampleRoutes.findByMentor(mentorId)),
   findOne: (id: string) => apiClient.get<WorkSample>(WorkSampleRoutes.findOne(id)),
+  remove: (id: string) => apiClient.delete<DeleteResult>(WorkSampleRoutes.remove(id)),
 };
 
 // ==================== EXAMS ====================

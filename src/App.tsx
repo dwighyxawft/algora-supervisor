@@ -17,10 +17,13 @@ import DashboardPage from "@/pages/supervisor/DashboardPage";
 import MentorListPage from "@/pages/supervisor/MentorListPage";
 import MentorProfilePage from "@/pages/supervisor/MentorProfilePage";
 import MentorPerformancePage from "@/pages/supervisor/MentorPerformancePage";
-import ScreeningDashboardPage from "@/pages/supervisor/ScreeningDashboardPage";
 import CreateScreeningPage from "@/pages/supervisor/CreateScreeningPage";
 import CreateAssessmentPage from "@/pages/supervisor/CreateAssessmentPage";
 import ScreeningReviewPage from "@/pages/supervisor/ScreeningReviewPage";
+import AssessmentSubmissionPage from "@/pages/supervisor/AssessmentSubmissionPage";
+import WorkSamplePreviewPage from "@/pages/supervisor/WorkSamplePreviewPage";
+import QbotResponsePage from "@/pages/supervisor/QbotResponsePage";
+import CodeInterviewSubmissionPage from "@/pages/supervisor/CodeInterviewSubmissionPage";
 import ComplaintsPage from "@/pages/supervisor/ComplaintsPage";
 import ComplaintDetailPage from "@/pages/supervisor/ComplaintDetailPage";
 import ReviewsPage from "@/pages/supervisor/ReviewsPage";
@@ -57,10 +60,14 @@ const App = () => (
                 <Route path="/supervisor/mentors" element={<MentorListPage />} />
                 <Route path="/supervisor/mentors/:id" element={<MentorProfilePage />} />
                 <Route path="/supervisor/performance" element={<MentorPerformancePage />} />
-                <Route path="/supervisor/screening" element={<ScreeningDashboardPage />} />
+                <Route path="/supervisor/screening" element={<ScreeningReviewPage />} />
                 <Route path="/supervisor/screening/create" element={<CreateScreeningPage />} />
                 <Route path="/supervisor/screening/:id" element={<ScreeningReviewPage />} />
                 <Route path="/supervisor/screening/:screeningId/assessment/create" element={<CreateAssessmentPage />} />
+                <Route path="/supervisor/screening/:screeningId/assessment/:assessmentId/submission" element={<AssessmentSubmissionPage />} />
+                <Route path="/supervisor/screening/:screeningId/work-sample/:sampleId/preview" element={<WorkSamplePreviewPage />} />
+                <Route path="/supervisor/screening/:screeningId/qbot/:qbotId/response" element={<QbotResponsePage />} />
+                <Route path="/supervisor/screening/:screeningId/code-interview/:interviewId/submission" element={<CodeInterviewSubmissionPage />} />
                 <Route path="/supervisor/complaints" element={<ComplaintsPage />} />
                 <Route path="/supervisor/complaints/:id" element={<ComplaintDetailPage />} />
                 <Route path="/supervisor/reviews" element={<ReviewsPage />} />
