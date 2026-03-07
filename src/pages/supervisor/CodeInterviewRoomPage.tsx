@@ -22,37 +22,30 @@ export default function CodeInterviewRoomPage() {
   const navigate = useNavigate();
   const { user } = useAuth();
 
-  // Interview data
   const [interview, setInterview] = useState<CodeInterview | null>(null);
   const [loading, setLoading] = useState(true);
   const [joined, setJoined] = useState(false);
   const [countdown, setCountdown] = useState('');
   const [canJoin, setCanJoin] = useState(false);
-
-  // Video controls
   const [cameraOn, setCameraOn] = useState(true);
   const [micOn, setMicOn] = useState(true);
   const [expandedVideo, setExpandedVideo] = useState<'mentor-cam' | 'supervisor-cam' | 'screen' | null>(null);
 
-  // Refs for video elements
   const mentorCamRef = useRef<HTMLVideoElement>(null);
   const mentorScreenRef = useRef<HTMLVideoElement>(null);
   const supervisorCamRef = useRef<HTMLVideoElement>(null);
 
-  // Media
   const { stream: localStream, startCamera, stopCamera, error: mediaError } = useMediaStreams();
 
-  // Socket
   const socket = useSocketConnection({
     userId: user?.id || '',
     userType: 'supervisor',
     roomId: interviewId || '',
   });
 
-  // Peer
   const peer = usePeerConnection(localStream);
 
-  // Fetch interview details
+  // Fetch interview
   useEffect(() => {
     if (!interviewId) return;
     codeInterviewService.findOne(interviewId)
@@ -60,7 +53,7 @@ export default function CodeInterviewRoomPage() {
       .catch(() => setLoading(false));
   }, [interviewId]);
 
-  // Countdown timer
+  // Countdown
   useEffect(() => {
     if (!interview?.startDateTime) { setCanJoin(true); return; }
     const tick = () => {
@@ -77,7 +70,7 @@ export default function CodeInterviewRoomPage() {
     return () => clearInterval(iv);
   }, [interview]);
 
-  // Attach local stream to supervisor video
+  // Attach local stream
   useEffect(() => {
     if (supervisorCamRef.current && localStream) {
       supervisorCamRef.current.srcObject = localStream;
@@ -97,19 +90,23 @@ export default function CodeInterviewRoomPage() {
     }
   }, [peer.remoteStreams.mentorScreen]);
 
-  // Once peer is ready, share peerId via socket
+  // Share peerId once ready
   useEffect(() => {
     if (peer.peerId && joined) {
       socket.sharePeerId(peer.peerId);
     }
   }, [peer.peerId, joined, socket.sharePeerId]);
 
+  // SCENARIO 2: When we receive mentor's peerId, call them
+  useEffect(() => {
+    if (socket.remotePeerId && peer.isReady && localStream) {
+      peer.callPeer(socket.remotePeerId);
+    }
+  }, [socket.remotePeerId, peer.isReady, localStream, peer.callPeer]);
+
   const handleJoinRoom = useCallback(async () => {
-    // Start camera
     await startCamera();
-    // Connect socket (which authenticates + joins room)
     socket.connect();
-    // Create peer
     peer.createPeer();
     setJoined(true);
   }, [startCamera, socket, peer]);
@@ -158,7 +155,6 @@ export default function CodeInterviewRoomPage() {
   const mentorName = interview.mentor
     ? `${interview.mentor.firstName} ${interview.mentor.lastName}`
     : 'Mentor';
-
   const mentorInitials = interview.mentor
     ? `${interview.mentor.firstName?.[0] || ''}${interview.mentor.lastName?.[0] || ''}`.toUpperCase()
     : 'MT';
@@ -173,12 +169,12 @@ export default function CodeInterviewRoomPage() {
         <div className="flex items-center gap-2">
           {joined && (
             <>
-              <Badge variant="outline" className={cn("gap-1", socket.isAuthenticated ? "border-success text-success" : "border-warning text-warning")}>
-                <span className={cn("w-1.5 h-1.5 rounded-full", socket.isAuthenticated ? "bg-success" : "bg-warning")} />
-                {socket.isAuthenticated ? 'Connected' : 'Connecting...'}
+              <Badge variant="outline" className={cn("gap-1", socket.isAuthenticated ? "border-green-500/50 text-green-400" : "border-yellow-500/50 text-yellow-400")}>
+                <span className={cn("w-1.5 h-1.5 rounded-full", socket.isAuthenticated ? "bg-green-500" : "bg-yellow-500")} />
+                {socket.connectionStatus}
               </Badge>
               {socket.mentorJoined && (
-                <Badge className="bg-success/10 text-success border-success/20">Mentor Online</Badge>
+                <Badge className="bg-green-500/10 text-green-400 border-green-500/20">Mentor Online</Badge>
               )}
             </>
           )}
@@ -193,7 +189,6 @@ export default function CodeInterviewRoomPage() {
             <CardTitle className="text-base">Interview Details</CardTitle>
           </CardHeader>
           <CardContent className="flex-1 flex flex-col gap-4 text-sm">
-            {/* Mentor */}
             <div className="flex items-center gap-3">
               <Avatar className="h-10 w-10">
                 <AvatarImage src={interview.mentor?.image} />
@@ -224,7 +219,6 @@ export default function CodeInterviewRoomPage() {
               )}
             </div>
 
-            {/* Tasks */}
             {interview.tasks && interview.tasks.length > 0 && (
               <div className="space-y-2">
                 <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Tasks</p>
@@ -239,7 +233,6 @@ export default function CodeInterviewRoomPage() {
               </div>
             )}
 
-            {/* Errors */}
             {(socket.error || peer.error || mediaError) && (
               <div className="p-2 rounded-md bg-destructive/10 border border-destructive/20 text-xs text-destructive">
                 <AlertCircle className="h-3 w-3 inline mr-1" />
@@ -247,49 +240,33 @@ export default function CodeInterviewRoomPage() {
               </div>
             )}
 
-            {/* Join / Leave */}
             <div className="mt-auto pt-4">
               {!joined ? (
                 <>
                   {!canJoin && countdown && (
                     <div className="flex items-center gap-2 p-3 rounded-lg bg-muted/50 mb-3">
-                      <Clock className="h-4 w-4 text-warning" />
+                      <Clock className="h-4 w-4 text-yellow-400" />
                       <div>
                         <p className="text-[10px] text-muted-foreground uppercase">Starts in</p>
                         <p className="text-lg font-mono font-bold text-foreground">{countdown}</p>
                       </div>
                     </div>
                   )}
-                  <Button
-                    className="w-full"
-                    disabled={!canJoin}
-                    onClick={handleJoinRoom}
-                  >
-                    <Video className="h-4 w-4 mr-2" />
-                    Join Interview Room
+                  <Button className="w-full" disabled={!canJoin} onClick={handleJoinRoom}>
+                    <Video className="h-4 w-4 mr-2" /> Join Interview Room
                   </Button>
                 </>
               ) : (
-                <div className="space-y-2">
-                  <div className="flex items-center justify-center gap-2">
-                    <Button
-                      variant={cameraOn ? 'outline' : 'destructive'}
-                      size="icon"
-                      onClick={toggleCamera}
-                    >
-                      {cameraOn ? <Video className="h-4 w-4" /> : <VideoOff className="h-4 w-4" />}
-                    </Button>
-                    <Button
-                      variant={micOn ? 'outline' : 'destructive'}
-                      size="icon"
-                      onClick={toggleMic}
-                    >
-                      {micOn ? <Mic className="h-4 w-4" /> : <MicOff className="h-4 w-4" />}
-                    </Button>
-                    <Button variant="destructive" size="icon" onClick={handleLeaveRoom}>
-                      <PhoneOff className="h-4 w-4" />
-                    </Button>
-                  </div>
+                <div className="flex items-center justify-center gap-2">
+                  <Button variant={cameraOn ? 'outline' : 'destructive'} size="icon" onClick={toggleCamera}>
+                    {cameraOn ? <Video className="h-4 w-4" /> : <VideoOff className="h-4 w-4" />}
+                  </Button>
+                  <Button variant={micOn ? 'outline' : 'destructive'} size="icon" onClick={toggleMic}>
+                    {micOn ? <Mic className="h-4 w-4" /> : <MicOff className="h-4 w-4" />}
+                  </Button>
+                  <Button variant="destructive" size="icon" onClick={handleLeaveRoom}>
+                    <PhoneOff className="h-4 w-4" />
+                  </Button>
                 </div>
               )}
             </div>
@@ -302,30 +279,19 @@ export default function CodeInterviewRoomPage() {
           expandedVideo === 'screen' && "fixed inset-4 z-50"
         )}>
           <div className="absolute top-2 right-2 z-10 flex gap-1">
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-7 w-7 bg-background/60 backdrop-blur-sm"
-              onClick={() => setExpandedVideo(expandedVideo === 'screen' ? null : 'screen')}
-            >
+            <Button variant="ghost" size="icon" className="h-7 w-7 bg-background/60 backdrop-blur-sm"
+              onClick={() => setExpandedVideo(expandedVideo === 'screen' ? null : 'screen')}>
               {expandedVideo === 'screen' ? <Minimize2 className="h-3 w-3" /> : <Maximize2 className="h-3 w-3" />}
             </Button>
           </div>
           <div className="flex-1 flex items-center justify-center bg-muted/30 relative">
             {peer.remoteStreams.mentorScreen ? (
-              <video
-                ref={mentorScreenRef}
-                autoPlay
-                playsInline
-                className="w-full h-full object-contain"
-              />
+              <video ref={mentorScreenRef} autoPlay playsInline className="w-full h-full object-contain" />
             ) : (
               <div className="flex flex-col items-center gap-3 text-muted-foreground">
                 <Monitor className="h-16 w-16 opacity-30" />
                 <p className="text-sm">Waiting for mentor screen share...</p>
-                {joined && !socket.mentorJoined && (
-                  <p className="text-xs">Mentor has not joined yet</p>
-                )}
+                {joined && !socket.mentorJoined && <p className="text-xs">Mentor has not joined yet</p>}
               </div>
             )}
             <div className="absolute bottom-2 left-2">
@@ -342,32 +308,19 @@ export default function CodeInterviewRoomPage() {
           <Card className={cn(
             "flex-1 flex flex-col overflow-hidden relative cursor-pointer",
             expandedVideo === 'mentor-cam' && "fixed inset-4 z-50"
-          )}
-            onClick={() => setExpandedVideo(expandedVideo === 'mentor-cam' ? null : 'mentor-cam')}
-          >
+          )} onClick={() => setExpandedVideo(expandedVideo === 'mentor-cam' ? null : 'mentor-cam')}>
             <div className="absolute top-2 left-2 z-10">
-              <Badge variant="secondary" className="text-[10px] gap-1">
-                <User className="h-3 w-3" /> {mentorName}
-              </Badge>
+              <Badge variant="secondary" className="text-[10px] gap-1"><User className="h-3 w-3" /> {mentorName}</Badge>
             </div>
             <div className="absolute top-2 right-2 z-10">
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-6 w-6 bg-background/60 backdrop-blur-sm"
-                onClick={(e) => { e.stopPropagation(); setExpandedVideo(expandedVideo === 'mentor-cam' ? null : 'mentor-cam'); }}
-              >
+              <Button variant="ghost" size="icon" className="h-6 w-6 bg-background/60 backdrop-blur-sm"
+                onClick={(e) => { e.stopPropagation(); setExpandedVideo(expandedVideo === 'mentor-cam' ? null : 'mentor-cam'); }}>
                 {expandedVideo === 'mentor-cam' ? <Minimize2 className="h-3 w-3" /> : <Maximize2 className="h-3 w-3" />}
               </Button>
             </div>
             <div className="flex-1 flex items-center justify-center bg-muted/30">
               {peer.remoteStreams.mentorCamera ? (
-                <video
-                  ref={mentorCamRef}
-                  autoPlay
-                  playsInline
-                  className="w-full h-full object-cover"
-                />
+                <video ref={mentorCamRef} autoPlay playsInline className="w-full h-full object-cover" />
               ) : (
                 <div className="flex flex-col items-center gap-2 text-muted-foreground">
                   <User className="h-10 w-10 opacity-30" />
@@ -381,33 +334,19 @@ export default function CodeInterviewRoomPage() {
           <Card className={cn(
             "flex-1 flex flex-col overflow-hidden relative cursor-pointer",
             expandedVideo === 'supervisor-cam' && "fixed inset-4 z-50"
-          )}
-            onClick={() => setExpandedVideo(expandedVideo === 'supervisor-cam' ? null : 'supervisor-cam')}
-          >
+          )} onClick={() => setExpandedVideo(expandedVideo === 'supervisor-cam' ? null : 'supervisor-cam')}>
             <div className="absolute top-2 left-2 z-10">
-              <Badge variant="secondary" className="text-[10px] gap-1">
-                <User className="h-3 w-3" /> You
-              </Badge>
+              <Badge variant="secondary" className="text-[10px] gap-1"><User className="h-3 w-3" /> You</Badge>
             </div>
             <div className="absolute top-2 right-2 z-10">
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-6 w-6 bg-background/60 backdrop-blur-sm"
-                onClick={(e) => { e.stopPropagation(); setExpandedVideo(expandedVideo === 'supervisor-cam' ? null : 'supervisor-cam'); }}
-              >
+              <Button variant="ghost" size="icon" className="h-6 w-6 bg-background/60 backdrop-blur-sm"
+                onClick={(e) => { e.stopPropagation(); setExpandedVideo(expandedVideo === 'supervisor-cam' ? null : 'supervisor-cam'); }}>
                 {expandedVideo === 'supervisor-cam' ? <Minimize2 className="h-3 w-3" /> : <Maximize2 className="h-3 w-3" />}
               </Button>
             </div>
             <div className="flex-1 flex items-center justify-center bg-muted/30">
               {localStream ? (
-                <video
-                  ref={supervisorCamRef}
-                  autoPlay
-                  playsInline
-                  muted
-                  className="w-full h-full object-cover mirror"
-                />
+                <video ref={supervisorCamRef} autoPlay playsInline muted className="w-full h-full object-cover mirror" />
               ) : (
                 <div className="flex flex-col items-center gap-2 text-muted-foreground">
                   <VideoOff className="h-10 w-10 opacity-30" />

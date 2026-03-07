@@ -258,6 +258,7 @@ export const MentorRoutes = {
   updatePassword:    () => url('mentor/update-password/'),                   // PATCH
   updateEmail:       () => url('mentor/update-email/'),                      // PATCH
   remove:            (id: string) => url(`mentor/${id}`),                    // DELETE
+  approve:           (id: string) => url(`mentor/approve/${id}`),            // PATCH
   // Complaints (MentorComplaint)
   getComplaintsBySupervisor: (supervisorId: string) => url(`mentor/complaints/supervisor/${supervisorId}`), // GET — custom
   updateComplaint:   (complaintId: string) => url(`mentor/complaint/${complaintId}`), // PATCH — custom

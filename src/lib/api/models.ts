@@ -750,6 +750,7 @@ export interface Mentor {
   githubUrl?: string;
   socketId?: string;
   isEmailVerified: boolean;
+  isCertified?: boolean;
   mentoringInterests?: string[];
   supervisorId?: string;
   supervisor?: Supervisor;

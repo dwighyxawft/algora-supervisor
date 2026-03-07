@@ -18,7 +18,7 @@ import {
   Eye, ClipboardCheck
 } from 'lucide-react';
 import { motion } from 'framer-motion';
-import { reviewService, workSampleService } from '@/lib/api/services';
+import { reviewService, workSampleService, mentorService } from '@/lib/api/services';
 import { useState } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { Textarea } from '@/components/ui/textarea';
@@ -284,6 +284,9 @@ function ScreeningDetailView({ screeningId }: { screeningId: string }) {
     if (!screening || !user) return;
     setApproving(true);
     try {
+      // Approve mentor via PATCH /mentor/approve/:id
+      await mentorService.approve(screening.mentor_id);
+      // Also complete the screening review
       const review = await reviewService.start({
         screening_id: screening.id, supervisor_id: user.id, mentor_id: screening.mentor_id,
       });
@@ -892,7 +895,7 @@ function ScreeningDetailView({ screeningId }: { screeningId: string }) {
         </motion.div>
 
         {/* ====== FINAL ACTION — APPROVE/REJECT ====== */}
-        {allPhasesComplete && screening.status !== 'COMPLETED' && screening.status !== 'FAILED' && (
+        {allPhasesComplete && screening.status !== 'COMPLETED' && screening.status !== 'FAILED' && !mentor?.isCertified && (
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.35 }}>
             <Card className="glass-card border-primary/20">
               <CardContent className="p-6 space-y-4">

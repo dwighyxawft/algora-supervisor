@@ -116,6 +116,7 @@ export const mentorService = {
   findAll: () => apiClient.get<Mentor[]>(MentorRoutes.findAll()),
   findBySupervisor: (supervisorId: string) => apiClient.get<Mentor[]>(MentorRoutes.findBySupervisor(supervisorId)),
   findOne: (id: string) => apiClient.get<Mentor>(MentorRoutes.findOne(id)),
+  approve: (id: string) => apiClient.patch<Mentor>(MentorRoutes.approve(id)),
 };
 
 // ==================== INTERNS ====================
