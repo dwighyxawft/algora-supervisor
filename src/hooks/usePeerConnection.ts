@@ -18,6 +18,34 @@ export function usePeerConnection(localStream: MediaStream | null) {
   const [state, setState] = useState<PeerState>({ peerId: null, isReady: false, error: null });
   const [remoteStreams, setRemoteStreams] = useState<StreamSet>({ mentorCamera: null, mentorScreen: null });
 
+  const assignStream = useCallback((stream: MediaStream, metadata?: any) => {
+    // Use metadata sent by the caller to determine stream type
+    if (metadata?.type === 'screen') {
+      setRemoteStreams(prev => ({ ...prev, mentorScreen: stream }));
+      return;
+    }
+    if (metadata?.type === 'camera') {
+      setRemoteStreams(prev => ({ ...prev, mentorCamera: stream }));
+      return;
+    }
+
+    // Fallback: detect via track settings
+    const videoTrack = stream.getVideoTracks()[0];
+    const settings = videoTrack?.getSettings();
+    const isScreenShare = (settings as any)?.displaySurface != null
+      || videoTrack?.label?.toLowerCase().includes('screen')
+      || videoTrack?.label?.toLowerCase().includes('window')
+      || videoTrack?.label?.toLowerCase().includes('monitor')
+      || videoTrack?.label?.toLowerCase().includes('display');
+
+    setRemoteStreams(prev => {
+      if (isScreenShare || (!prev.mentorScreen && prev.mentorCamera)) {
+        return { ...prev, mentorScreen: stream };
+      }
+      return { ...prev, mentorCamera: stream };
+    });
+  }, []);
+
   const createPeer = useCallback(() => {
     if (peerRef.current) return;
 
@@ -36,13 +64,12 @@ export function usePeerConnection(localStream: MediaStream | null) {
       setState({ peerId: id, isReady: true, error: null });
     });
 
-    // Listen for incoming calls from mentor
+    // Listen for incoming calls from mentor (both scenarios)
     peer.on('call', (call) => {
-      // Answer with supervisor's local stream
       call.answer(localStream || undefined);
 
       call.on('stream', (remoteStream) => {
-        assignStream(remoteStream);
+        assignStream(remoteStream, call.metadata);
       });
 
       call.on('error', (err) => {
@@ -55,28 +82,24 @@ export function usePeerConnection(localStream: MediaStream | null) {
     peer.on('error', (err) => {
       setState(s => ({ ...s, error: `Peer error: ${err.message}` }));
     });
-  }, [localStream]);
+  }, [localStream, assignStream]);
 
-  const assignStream = useCallback((stream: MediaStream) => {
-    // Detect stream type: screen share typically has a video track with displaySurface
-    // or higher resolution. Camera streams have audio tracks usually.
-    const videoTrack = stream.getVideoTracks()[0];
-    const settings = videoTrack?.getSettings();
+  // Call mentor when supervisor joins first and receives mentor's peerId
+  const callPeer = useCallback((remotePeerId: string) => {
+    if (!peerRef.current || !localStream) return;
+    const call = peerRef.current.call(remotePeerId, localStream);
+    if (!call) return;
 
-    // displaySurface is set for screen shares in most browsers
-    const isScreenShare = (settings as any)?.displaySurface != null
-      || (videoTrack?.label?.toLowerCase().includes('screen'))
-      || (videoTrack?.label?.toLowerCase().includes('window'))
-      || (videoTrack?.label?.toLowerCase().includes('monitor'))
-      || (videoTrack?.label?.toLowerCase().includes('display'));
-
-    setRemoteStreams(prev => {
-      if (isScreenShare || (!prev.mentorScreen && prev.mentorCamera)) {
-        return { ...prev, mentorScreen: stream };
-      }
-      return { ...prev, mentorCamera: stream };
+    call.on('stream', (remoteStream) => {
+      assignStream(remoteStream, call.metadata);
     });
-  }, []);
+
+    call.on('error', (err) => {
+      console.error('Outgoing call error:', err);
+    });
+
+    connectionsRef.current.push(call);
+  }, [localStream, assignStream]);
 
   const destroyPeer = useCallback(() => {
     connectionsRef.current.forEach(c => c.close());
@@ -91,5 +114,5 @@ export function usePeerConnection(localStream: MediaStream | null) {
     return () => { destroyPeer(); };
   }, [destroyPeer]);
 
-  return { ...state, remoteStreams, createPeer, destroyPeer };
+  return { ...state, remoteStreams, createPeer, destroyPeer, callPeer };
 }
