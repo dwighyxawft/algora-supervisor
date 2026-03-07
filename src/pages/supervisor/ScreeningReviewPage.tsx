@@ -895,7 +895,7 @@ function ScreeningDetailView({ screeningId }: { screeningId: string }) {
         </motion.div>
 
         {/* ====== FINAL ACTION — APPROVE/REJECT ====== */}
-        {allPhasesComplete && screening.status !== 'COMPLETED' && screening.status !== 'FAILED' && (
+        {allPhasesComplete && screening.status !== 'COMPLETED' && screening.status !== 'FAILED' && !mentor?.isCertified && (
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.35 }}>
             <Card className="glass-card border-primary/20">
               <CardContent className="p-6 space-y-4">
