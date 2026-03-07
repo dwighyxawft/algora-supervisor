@@ -284,6 +284,9 @@ function ScreeningDetailView({ screeningId }: { screeningId: string }) {
     if (!screening || !user) return;
     setApproving(true);
     try {
+      // Approve mentor via PATCH /mentor/approve/:id
+      await mentorService.approve(screening.mentor_id);
+      // Also complete the screening review
       const review = await reviewService.start({
         screening_id: screening.id, supervisor_id: user.id, mentor_id: screening.mentor_id,
       });
