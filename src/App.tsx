@@ -33,6 +33,7 @@ import ProjectSubmissionsPage from "@/pages/supervisor/ProjectSubmissionsPage";
 import ProgramDetailPage from "@/pages/supervisor/ProgramDetailPage";
 import BatchDetailPage from "@/pages/supervisor/BatchDetailPage";
 import CodeInterviewRoomPage from "@/pages/supervisor/CodeInterviewRoomPage";
+import MonthEndMeetingPage from "@/pages/supervisor/MonthEndMeetingPage";
 
 import NotFound from "./pages/NotFound";
 
