@@ -78,6 +78,7 @@ const App = () => (
                 <Route path="/supervisor/programs/:id/batches/:batchId" element={<BatchDetailPage />} />
                 <Route path="/supervisor/settings" element={<SettingsPage />} />
                 <Route path="/supervisor/code-interview/:interviewId" element={<CodeInterviewRoomPage />} />
+                <Route path="/supervisor/month-end-meeting" element={<MonthEndMeetingPage />} />
               </Route>
             </Route>
 
