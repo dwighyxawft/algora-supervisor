@@ -16,22 +16,22 @@ import ResetPasswordPage from "@/pages/supervisor/ResetPasswordPage";
 import DashboardPage from "@/pages/supervisor/DashboardPage";
 import MentorListPage from "@/pages/supervisor/MentorListPage";
 import MentorProfilePage from "@/pages/supervisor/MentorProfilePage";
-import MentorPerformancePage from "@/pages/supervisor/MentorPerformancePage";
+import MentorProgramBatchesPage from "@/pages/supervisor/MentorProgramBatchesPage";
+import BatchOnboardingPage from "@/pages/supervisor/BatchOnboardingPage";
+import ProgramBatchDetailPage from "@/pages/supervisor/ProgramBatchDetailPage";
+import AssignmentDetailPage from "@/pages/supervisor/AssignmentDetailPage";
+import ExamDetailPage from "@/pages/supervisor/ExamDetailPage";
+import AnalyticsPage from "@/pages/supervisor/AnalyticsPage";
+import SettingsPage from "@/pages/supervisor/SettingsPage";
+
+// Screening (still accessible from mentor profile)
+import ScreeningReviewPage from "@/pages/supervisor/ScreeningReviewPage";
 import CreateScreeningPage from "@/pages/supervisor/CreateScreeningPage";
 import CreateAssessmentPage from "@/pages/supervisor/CreateAssessmentPage";
-import ScreeningReviewPage from "@/pages/supervisor/ScreeningReviewPage";
 import AssessmentSubmissionPage from "@/pages/supervisor/AssessmentSubmissionPage";
 import WorkSamplePreviewPage from "@/pages/supervisor/WorkSamplePreviewPage";
 import QbotResponsePage from "@/pages/supervisor/QbotResponsePage";
 import CodeInterviewSubmissionPage from "@/pages/supervisor/CodeInterviewSubmissionPage";
-import ComplaintsPage from "@/pages/supervisor/ComplaintsPage";
-import ComplaintDetailPage from "@/pages/supervisor/ComplaintDetailPage";
-import ReviewsPage from "@/pages/supervisor/ReviewsPage";
-import AnalyticsPage from "@/pages/supervisor/AnalyticsPage";
-import SettingsPage from "@/pages/supervisor/SettingsPage";
-import ProjectSubmissionsPage from "@/pages/supervisor/ProjectSubmissionsPage";
-import ProgramDetailPage from "@/pages/supervisor/ProgramDetailPage";
-import BatchDetailPage from "@/pages/supervisor/BatchDetailPage";
 import CodeInterviewRoomPage from "@/pages/supervisor/CodeInterviewRoomPage";
 import MonthEndMeetingPage from "@/pages/supervisor/MonthEndMeetingPage";
 
@@ -58,10 +58,19 @@ const App = () => (
             <Route element={<ProtectedRoute />}>
               <Route element={<SupervisorLayout />}>
                 <Route path="/supervisor/dashboard" element={<DashboardPage />} />
+                
+                {/* Mentors */}
                 <Route path="/supervisor/mentors" element={<MentorListPage />} />
                 <Route path="/supervisor/mentors/:id" element={<MentorProfilePage />} />
-                <Route path="/supervisor/performance" element={<MentorPerformancePage />} />
-                <Route path="/supervisor/screening" element={<ScreeningReviewPage />} />
+                <Route path="/supervisor/mentors/:id/programs/:programId" element={<MentorProgramBatchesPage />} />
+                <Route path="/supervisor/mentors/:id/programs/:programId/batches/:batchId" element={<ProgramBatchDetailPage />} />
+                <Route path="/supervisor/mentors/:id/programs/:programId/batches/:batchId/onboarding" element={<BatchOnboardingPage />} />
+                <Route path="/supervisor/mentors/:id/programs/:programId/batches/:batchId/homework/:homeworkId" element={<AssignmentDetailPage />} />
+                <Route path="/supervisor/mentors/:id/programs/:programId/batches/:batchId/classwork/:classworkId" element={<AssignmentDetailPage />} />
+                <Route path="/supervisor/mentors/:id/programs/:programId/batches/:batchId/challenge/:challengeId" element={<AssignmentDetailPage />} />
+                <Route path="/supervisor/mentors/:id/programs/:programId/batches/:batchId/exam/:examId/:examType" element={<ExamDetailPage />} />
+
+                {/* Screening (from mentor profile) */}
                 <Route path="/supervisor/screening/create" element={<CreateScreeningPage />} />
                 <Route path="/supervisor/screening/:id" element={<ScreeningReviewPage />} />
                 <Route path="/supervisor/screening/:screeningId/assessment/create" element={<CreateAssessmentPage />} />
@@ -69,14 +78,14 @@ const App = () => (
                 <Route path="/supervisor/screening/:screeningId/work-sample/:sampleId/preview" element={<WorkSamplePreviewPage />} />
                 <Route path="/supervisor/screening/:screeningId/qbot/:qbotId/response" element={<QbotResponsePage />} />
                 <Route path="/supervisor/screening/:screeningId/code-interview/:interviewId/submission" element={<CodeInterviewSubmissionPage />} />
-                <Route path="/supervisor/complaints" element={<ComplaintsPage />} />
-                <Route path="/supervisor/complaints/:id" element={<ComplaintDetailPage />} />
-                <Route path="/supervisor/reviews" element={<ReviewsPage />} />
+
+                {/* Analytics */}
                 <Route path="/supervisor/analytics" element={<AnalyticsPage />} />
-                <Route path="/supervisor/projects" element={<ProjectSubmissionsPage />} />
-                <Route path="/supervisor/programs/:id" element={<ProgramDetailPage />} />
-                <Route path="/supervisor/programs/:id/batches/:batchId" element={<BatchDetailPage />} />
+
+                {/* Settings */}
                 <Route path="/supervisor/settings" element={<SettingsPage />} />
+
+                {/* Meetings */}
                 <Route path="/supervisor/code-interview/:interviewId" element={<CodeInterviewRoomPage />} />
                 <Route path="/supervisor/month-end-meeting" element={<MonthEndMeetingPage />} />
               </Route>
