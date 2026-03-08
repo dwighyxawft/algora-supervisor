@@ -33,6 +33,7 @@ import ProjectSubmissionsPage from "@/pages/supervisor/ProjectSubmissionsPage";
 import ProgramDetailPage from "@/pages/supervisor/ProgramDetailPage";
 import BatchDetailPage from "@/pages/supervisor/BatchDetailPage";
 import CodeInterviewRoomPage from "@/pages/supervisor/CodeInterviewRoomPage";
+import MonthEndMeetingPage from "@/pages/supervisor/MonthEndMeetingPage";
 
 import NotFound from "./pages/NotFound";
 
@@ -77,6 +78,7 @@ const App = () => (
                 <Route path="/supervisor/programs/:id/batches/:batchId" element={<BatchDetailPage />} />
                 <Route path="/supervisor/settings" element={<SettingsPage />} />
                 <Route path="/supervisor/code-interview/:interviewId" element={<CodeInterviewRoomPage />} />
+                <Route path="/supervisor/month-end-meeting" element={<MonthEndMeetingPage />} />
               </Route>
             </Route>
 
