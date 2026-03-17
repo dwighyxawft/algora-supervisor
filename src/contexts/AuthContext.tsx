@@ -34,17 +34,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     const token = localStorage.getItem(TOKEN_KEY);
     const userStr = localStorage.getItem(USER_KEY);
+    console.log('[Auth] Restoring session — token exists:', !!token, ', user exists:', !!userStr);
     if (token && userStr) {
       try {
-        const raw = JSON.parse(userStr);
-        const user = { ...raw, id: raw.id || raw._id };
+        const user = JSON.parse(userStr);
+        console.log('[Auth] Restored user:', { id: user.id, email: user.email });
         setState({ user, token, isAuthenticated: true, isLoading: false });
       } catch {
+        console.error('[Auth] Failed to parse stored user');
         localStorage.removeItem(TOKEN_KEY);
         localStorage.removeItem(USER_KEY);
         setState(s => ({ ...s, isLoading: false }));
       }
     } else {
+      console.log('[Auth] No stored session found');
       setState(s => ({ ...s, isLoading: false }));
     }
   }, []);
