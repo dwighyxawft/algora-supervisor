@@ -11,7 +11,7 @@ import { StatCard } from '@/components/supervisor/StatCard';
 import {
   ArrowLeft, Mail, Phone, Globe, Github, Linkedin, Star, BookOpen,
   MessageSquareWarning, Eye, Users, GraduationCap, ClipboardCheck,
-  FileCode, Award
+  FileCode, Award, Plus, ExternalLink, Shield
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useMemo } from 'react';
