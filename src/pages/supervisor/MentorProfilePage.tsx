@@ -104,6 +104,7 @@ export default function MentorProfilePage() {
       <Tabs defaultValue="overview">
         <TabsList className="bg-muted/50 flex-wrap">
           <TabsTrigger value="overview" className="gap-1.5"><Eye className="h-3.5 w-3.5" /> Overview</TabsTrigger>
+          <TabsTrigger value="screening" className="gap-1.5"><Shield className="h-3.5 w-3.5" /> Screening</TabsTrigger>
           <TabsTrigger value="programs" className="gap-1.5"><BookOpen className="h-3.5 w-3.5" /> Programs</TabsTrigger>
           <TabsTrigger value="performance" className="gap-1.5"><Award className="h-3.5 w-3.5" /> Performance</TabsTrigger>
           <TabsTrigger value="complaints" className="gap-1.5"><MessageSquareWarning className="h-3.5 w-3.5" /> Complaints</TabsTrigger>
