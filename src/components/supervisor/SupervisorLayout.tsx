@@ -5,7 +5,7 @@ import { useNotifications } from '@/hooks/use-api';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import {
-  LayoutDashboard, Users, BarChart3,
+  LayoutDashboard, Users, BarChart3, ClipboardCheck,
   LogOut, ChevronLeft, ChevronRight,
   Bell, Search, Shield, Menu, Settings
 } from 'lucide-react';
