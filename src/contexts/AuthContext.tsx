@@ -56,7 +56,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         AuthRoutes.loginSupervisor(),
         { username: email, password }
       );
-      const { token, user } = data;
+      const { token, user: rawUser } = data;
+      const user = { ...rawUser, id: rawUser.id || (rawUser as any)._id };
       localStorage.setItem(TOKEN_KEY, token);
       localStorage.setItem(USER_KEY, JSON.stringify(user));
       setState({ user, token, isAuthenticated: true, isLoading: false });
