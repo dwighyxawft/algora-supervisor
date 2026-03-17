@@ -5,7 +5,7 @@ import { useNotifications } from '@/hooks/use-api';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import {
-  LayoutDashboard, Users, BarChart3,
+  LayoutDashboard, Users, BarChart3, ClipboardCheck,
   LogOut, ChevronLeft, ChevronRight,
   Bell, Search, Shield, Menu, Settings
 } from 'lucide-react';
@@ -21,6 +21,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip
 const NAV_ITEMS = [
   { label: 'Dashboard', icon: LayoutDashboard, path: '/supervisor/dashboard' },
   { label: 'Mentors', icon: Users, path: '/supervisor/mentors' },
+  { label: 'Screening', icon: ClipboardCheck, path: '/supervisor/screening' },
   { label: 'Analytics', icon: BarChart3, path: '/supervisor/analytics' },
   { label: 'Settings', icon: Settings, path: '/supervisor/settings' },
 ];

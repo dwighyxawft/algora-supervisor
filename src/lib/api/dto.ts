@@ -521,6 +521,7 @@ export type UpdateScheduleDto = Partial<CreateScheduleDto>;
 
 export interface CreateScreeningDto {
   supervisor_id: string;
+  mentor_id?: string;
   title: string;
   description?: string;
   status?: ScreeningStatus;

@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useState, useMemo, useEffect } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { useCreateScreening, useSupervisorMentors } from '@/hooks/use-api';
 import { ScreeningStatus } from '@/lib/api/models';
@@ -12,15 +12,17 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { ArrowLeft, ArrowRight, CheckCircle, Loader2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import type { CreateScreeningDto } from '@/lib/api/dto';
-import { useMemo } from 'react';
 
 const STEPS = ['Basic Info', 'Select Mentor', 'Assessment Config', 'Review & Create'];
 
 export default function CreateScreeningPage() {
-  const [step, setStep] = useState(0);
+  const [searchParams] = useSearchParams();
+  const preselectedMentorId = searchParams.get('mentorId') || '';
+
+  const [step, setStep] = useState(preselectedMentorId ? 0 : 0);
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
-  const [mentorId, setMentorId] = useState('');
+  const [mentorId, setMentorId] = useState(preselectedMentorId);
   const [assessmentRetries, setAssessmentRetries] = useState('2');
   const navigate = useNavigate();
   const { user } = useAuth();
@@ -32,10 +34,21 @@ export default function CreateScreeningPage() {
     mentors?.filter(m => !m.screening) || [],
   [mentors]);
 
+  // If preselected mentor is valid, auto-set it
+  useEffect(() => {
+    if (preselectedMentorId && mentors) {
+      const found = unscreenedMentors.find(m => m.id === preselectedMentorId);
+      if (found) {
+        setMentorId(preselectedMentorId);
+      }
+    }
+  }, [preselectedMentorId, mentors, unscreenedMentors]);
+
   const handleSubmit = () => {
     if (!user) return;
     const dto: CreateScreeningDto = {
       supervisor_id: user.id,
+      mentor_id: mentorId,
       title,
       description,
       status: ScreeningStatus.NOT_STARTED,
@@ -47,7 +60,8 @@ export default function CreateScreeningPage() {
     });
   };
 
-  const selectedMentor = unscreenedMentors.find(m => m.id === mentorId);
+  const selectedMentor = unscreenedMentors.find(m => m.id === mentorId) ||
+    mentors?.find(m => m.id === mentorId);
 
   return (
     <div className="space-y-6 max-w-3xl mx-auto">

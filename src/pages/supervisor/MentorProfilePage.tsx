@@ -11,7 +11,7 @@ import { StatCard } from '@/components/supervisor/StatCard';
 import {
   ArrowLeft, Mail, Phone, Globe, Github, Linkedin, Star, BookOpen,
   MessageSquareWarning, Eye, Users, GraduationCap, ClipboardCheck,
-  FileCode, Award
+  FileCode, Award, Plus, ExternalLink, Shield
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useMemo } from 'react';
@@ -104,6 +104,7 @@ export default function MentorProfilePage() {
       <Tabs defaultValue="overview">
         <TabsList className="bg-muted/50 flex-wrap">
           <TabsTrigger value="overview" className="gap-1.5"><Eye className="h-3.5 w-3.5" /> Overview</TabsTrigger>
+          <TabsTrigger value="screening" className="gap-1.5"><Shield className="h-3.5 w-3.5" /> Screening</TabsTrigger>
           <TabsTrigger value="programs" className="gap-1.5"><BookOpen className="h-3.5 w-3.5" /> Programs</TabsTrigger>
           <TabsTrigger value="performance" className="gap-1.5"><Award className="h-3.5 w-3.5" /> Performance</TabsTrigger>
           <TabsTrigger value="complaints" className="gap-1.5"><MessageSquareWarning className="h-3.5 w-3.5" /> Complaints</TabsTrigger>
@@ -148,6 +149,63 @@ export default function MentorProfilePage() {
                     </div>
                   ))}
                 </div>
+              </CardContent>
+            </Card>
+          )}
+        </TabsContent>
+
+        {/* SCREENING TAB */}
+        <TabsContent value="screening" className="mt-4 space-y-4">
+          {mentor.screening ? (
+            <Card className="glass-card">
+              <CardHeader className="pb-2">
+                <div className="flex items-center justify-between">
+                  <CardTitle className="text-sm font-medium text-muted-foreground">Screening Details</CardTitle>
+                  <Button size="sm" variant="outline" className="gap-1.5" onClick={() => navigate(`/supervisor/screening/${mentor.screening!.id}`)}>
+                    <ExternalLink className="h-3 w-3" /> View Full Details
+                  </Button>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <div className="flex items-center justify-between mb-4">
+                  <Badge className={
+                    mentor.screening.status === 'COMPLETED' ? 'bg-green-500/10 text-green-400 border-green-500/20' :
+                    mentor.screening.status === 'FAILED' ? 'bg-destructive/10 text-destructive border-destructive/20' :
+                    mentor.screening.status === 'IN_PROGRESS' ? 'bg-primary/10 text-primary border-primary/20' :
+                    'bg-muted text-muted-foreground'
+                  }>
+                    {mentor.screening.status.replace('_', ' ')}
+                  </Badge>
+                  <span className="text-xs text-muted-foreground">Phase {mentor.screening.currentPhase}/4</span>
+                </div>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-sm">
+                  {[
+                    { label: 'Assessment', passed: mentor.screening.assessmentPassed },
+                    { label: 'Work Samples', passed: mentor.screening.currentPhase > 2 },
+                    { label: 'QBot', passed: mentor.screening.qBotPassed },
+                    { label: 'Code Interview', passed: mentor.screening.codeInterviewPassed },
+                  ].map(ph => (
+                    <div key={ph.label} className="bg-muted/30 rounded-lg p-3 text-center">
+                      <p className="text-[10px] text-muted-foreground">{ph.label}</p>
+                      <p className={`text-sm font-semibold ${ph.passed ? 'text-green-400' : 'text-muted-foreground'}`}>
+                        {ph.passed ? 'Passed' : 'Pending'}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          ) : (
+            <Card className="glass-card">
+              <CardContent className="p-8 text-center">
+                <Shield className="h-12 w-12 mx-auto mb-4 text-muted-foreground/50" />
+                <h3 className="text-lg font-semibold mb-2">No Screening Started</h3>
+                <p className="text-sm text-muted-foreground mb-6 max-w-md mx-auto">
+                  This mentor has not been screened yet. Create a screening to begin the certification process.
+                </p>
+                <Button className="gap-2 gradient-primary" onClick={() => navigate(`/supervisor/screening/create?mentorId=${id}`)}>
+                  <Plus className="h-4 w-4" /> Create Screening
+                </Button>
               </CardContent>
             </Card>
           )}
