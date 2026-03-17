@@ -34,17 +34,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     const token = localStorage.getItem(TOKEN_KEY);
     const userStr = localStorage.getItem(USER_KEY);
+    console.log('[Auth] Restoring session — token exists:', !!token, ', user exists:', !!userStr);
     if (token && userStr) {
       try {
-        const raw = JSON.parse(userStr);
-        const user = { ...raw, id: raw.id || raw._id };
+        const user = JSON.parse(userStr);
+        console.log('[Auth] Restored user:', { id: user.id, email: user.email });
         setState({ user, token, isAuthenticated: true, isLoading: false });
       } catch {
+        console.error('[Auth] Failed to parse stored user');
         localStorage.removeItem(TOKEN_KEY);
         localStorage.removeItem(USER_KEY);
         setState(s => ({ ...s, isLoading: false }));
       }
     } else {
+      console.log('[Auth] No stored session found');
       setState(s => ({ ...s, isLoading: false }));
     }
   }, []);
@@ -52,16 +55,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const login = useCallback(async (email: string, password: string) => {
     setState(s => ({ ...s, isLoading: true }));
     try {
-      const data = await apiClient.post<{ token: string; user: Supervisor }>(
+      const data = await apiClient.post<any>(
         AuthRoutes.loginSupervisor(),
         { username: email, password }
       );
-      const { token, user: rawUser } = data;
-      const user = { ...rawUser, id: rawUser.id || (rawUser as any)._id };
+      console.log('[Auth] Login response keys:', Object.keys(data));
+      console.log('[Auth] Login response:', JSON.stringify(data, null, 2).substring(0, 500));
+      const token = data.token || data.access_token;
+      const rawUser = data.user || data.supervisor || data;
+      const user = { ...rawUser, id: rawUser.id || rawUser._id };
+      console.log('[Auth] Resolved user id:', user.id, ', token exists:', !!token);
       localStorage.setItem(TOKEN_KEY, token);
       localStorage.setItem(USER_KEY, JSON.stringify(user));
       setState({ user, token, isAuthenticated: true, isLoading: false });
     } catch (err) {
+      console.error('[Auth] Login error:', err);
       setState(s => ({ ...s, isLoading: false }));
       throw err;
     }
