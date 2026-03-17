@@ -36,7 +36,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const userStr = localStorage.getItem(USER_KEY);
     if (token && userStr) {
       try {
-        const user = JSON.parse(userStr);
+        const raw = JSON.parse(userStr);
+        const user = { ...raw, id: raw.id || raw._id };
         setState({ user, token, isAuthenticated: true, isLoading: false });
       } catch {
         localStorage.removeItem(TOKEN_KEY);
