@@ -70,7 +70,8 @@ const App = () => (
                 <Route path="/supervisor/mentors/:id/programs/:programId/batches/:batchId/challenge/:challengeId" element={<AssignmentDetailPage />} />
                 <Route path="/supervisor/mentors/:id/programs/:programId/batches/:batchId/exam/:examId/:examType" element={<ExamDetailPage />} />
 
-                {/* Screening (from mentor profile) */}
+                {/* Screening */}
+                <Route path="/supervisor/screening" element={<ScreeningReviewPage />} />
                 <Route path="/supervisor/screening/create" element={<CreateScreeningPage />} />
                 <Route path="/supervisor/screening/:id" element={<ScreeningReviewPage />} />
                 <Route path="/supervisor/screening/:screeningId/assessment/create" element={<CreateAssessmentPage />} />
