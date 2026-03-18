@@ -29,6 +29,7 @@ import ScreeningReviewPage from "@/pages/supervisor/ScreeningReviewPage";
 import CreateScreeningPage from "@/pages/supervisor/CreateScreeningPage";
 import CreateAssessmentPage from "@/pages/supervisor/CreateAssessmentPage";
 import AssessmentSubmissionPage from "@/pages/supervisor/AssessmentSubmissionPage";
+import AssessmentDetailPage from "@/pages/supervisor/AssessmentDetailPage";
 import WorkSamplePreviewPage from "@/pages/supervisor/WorkSamplePreviewPage";
 import QbotResponsePage from "@/pages/supervisor/QbotResponsePage";
 import CodeInterviewSubmissionPage from "@/pages/supervisor/CodeInterviewSubmissionPage";
