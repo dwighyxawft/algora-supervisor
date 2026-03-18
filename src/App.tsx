@@ -29,6 +29,7 @@ import ScreeningReviewPage from "@/pages/supervisor/ScreeningReviewPage";
 import CreateScreeningPage from "@/pages/supervisor/CreateScreeningPage";
 import CreateAssessmentPage from "@/pages/supervisor/CreateAssessmentPage";
 import AssessmentSubmissionPage from "@/pages/supervisor/AssessmentSubmissionPage";
+import AssessmentDetailPage from "@/pages/supervisor/AssessmentDetailPage";
 import WorkSamplePreviewPage from "@/pages/supervisor/WorkSamplePreviewPage";
 import QbotResponsePage from "@/pages/supervisor/QbotResponsePage";
 import CodeInterviewSubmissionPage from "@/pages/supervisor/CodeInterviewSubmissionPage";
@@ -75,6 +76,7 @@ const App = () => (
                 <Route path="/supervisor/screening/create" element={<CreateScreeningPage />} />
                 <Route path="/supervisor/screening/:id" element={<ScreeningReviewPage />} />
                 <Route path="/supervisor/screening/:screeningId/assessment/create" element={<CreateAssessmentPage />} />
+                <Route path="/supervisor/screening/:screeningId/assessment/:assessmentId" element={<AssessmentDetailPage />} />
                 <Route path="/supervisor/screening/:screeningId/assessment/:assessmentId/submission" element={<AssessmentSubmissionPage />} />
                 <Route path="/supervisor/screening/:screeningId/work-sample/:sampleId/preview" element={<WorkSamplePreviewPage />} />
                 <Route path="/supervisor/screening/:screeningId/qbot/:qbotId/response" element={<QbotResponsePage />} />

@@ -220,6 +220,16 @@ export function useCreateAssessment() {
   });
 }
 
+export function useUpdateAssessment() {
+  const qc = useQueryClient();
+  const { toast } = useToast();
+  return useMutation({
+    mutationFn: ({ id, data }: { id: string; data: Partial<CreateAssessmentDto> }) => assessmentService.update(id, data),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['screenings'] }); qc.invalidateQueries({ queryKey: ['assessments'] }); toast({ title: 'Assessment updated' }); },
+    onError: (e: Error) => toast({ title: 'Error', description: e.message, variant: 'destructive' }),
+  });
+}
+
 export function useReadyAssessment() {
   const qc = useQueryClient();
   const { toast } = useToast();
@@ -251,11 +261,49 @@ export function useCreateObjectiveAssessment() {
   });
 }
 
+export function useObjectiveQuestions(oaId: string) {
+  return useQuery({
+    queryKey: ['objectiveQuestions', oaId],
+    queryFn: () => objectiveAssessmentService.findQuestions(oaId),
+    enabled: !!oaId,
+  });
+}
+
 export function useCreateObjectiveQuestion() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (data: CreateObjectiveAssessmentDto) => objectiveAssessmentService.createQuestion(data),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['assessments'] }),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['objectiveQuestions'] }); qc.invalidateQueries({ queryKey: ['assessments'] }); },
+  });
+}
+
+export function useUpdateObjectiveQuestion() {
+  const qc = useQueryClient();
+  const { toast } = useToast();
+  return useMutation({
+    mutationFn: ({ id, data }: { id: string; data: Partial<CreateObjectiveAssessmentDto> }) => objectiveAssessmentService.updateQuestion(id, data),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['objectiveQuestions'] }); qc.invalidateQueries({ queryKey: ['assessments'] }); toast({ title: 'Question updated' }); },
+    onError: (e: Error) => toast({ title: 'Error', description: e.message, variant: 'destructive' }),
+  });
+}
+
+export function useDeleteObjectiveQuestion() {
+  const qc = useQueryClient();
+  const { toast } = useToast();
+  return useMutation({
+    mutationFn: (id: string) => objectiveAssessmentService.deleteQuestion(id),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['objectiveQuestions'] }); qc.invalidateQueries({ queryKey: ['assessments'] }); toast({ title: 'Question deleted' }); },
+    onError: (e: Error) => toast({ title: 'Error', description: e.message, variant: 'destructive' }),
+  });
+}
+
+export function useGenerateObjectiveQuestion() {
+  const qc = useQueryClient();
+  const { toast } = useToast();
+  return useMutation({
+    mutationFn: (oaId: string) => objectiveAssessmentService.createQuestionAgent(oaId),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['objectiveQuestions'] }); qc.invalidateQueries({ queryKey: ['assessments'] }); toast({ title: 'AI question generated' }); },
+    onError: (e: Error) => toast({ title: 'Error', description: e.message, variant: 'destructive' }),
   });
 }
 
@@ -264,7 +312,7 @@ export function useGenerateObjectiveQuestions() {
   const { toast } = useToast();
   return useMutation({
     mutationFn: (oaId: string) => objectiveAssessmentService.createManyAgent(oaId),
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ['assessments'] }); toast({ title: 'AI questions generated' }); },
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['objectiveQuestions'] }); qc.invalidateQueries({ queryKey: ['assessments'] }); toast({ title: 'AI questions generated' }); },
     onError: (e: Error) => toast({ title: 'Error', description: e.message, variant: 'destructive' }),
   });
 }
@@ -280,11 +328,49 @@ export function useCreateTheoryAssessment() {
   });
 }
 
+export function useTheoryQuestions(taId: string) {
+  return useQuery({
+    queryKey: ['theoryQuestions', taId],
+    queryFn: () => theoryAssessmentService.findQuestions(taId),
+    enabled: !!taId,
+  });
+}
+
 export function useCreateTheoryQuestion() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (data: CreateTheoryAssessmentQuestionDto) => theoryAssessmentService.createQuestion(data),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['assessments'] }),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['theoryQuestions'] }); qc.invalidateQueries({ queryKey: ['assessments'] }); },
+  });
+}
+
+export function useUpdateTheoryQuestion() {
+  const qc = useQueryClient();
+  const { toast } = useToast();
+  return useMutation({
+    mutationFn: ({ id, data }: { id: string; data: Partial<CreateTheoryAssessmentQuestionDto> }) => theoryAssessmentService.updateQuestion(id, data),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['theoryQuestions'] }); qc.invalidateQueries({ queryKey: ['assessments'] }); toast({ title: 'Question updated' }); },
+    onError: (e: Error) => toast({ title: 'Error', description: e.message, variant: 'destructive' }),
+  });
+}
+
+export function useDeleteTheoryQuestion() {
+  const qc = useQueryClient();
+  const { toast } = useToast();
+  return useMutation({
+    mutationFn: (id: string) => theoryAssessmentService.deleteQuestion(id),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['theoryQuestions'] }); qc.invalidateQueries({ queryKey: ['assessments'] }); toast({ title: 'Question deleted' }); },
+    onError: (e: Error) => toast({ title: 'Error', description: e.message, variant: 'destructive' }),
+  });
+}
+
+export function useGenerateTheoryQuestion() {
+  const qc = useQueryClient();
+  const { toast } = useToast();
+  return useMutation({
+    mutationFn: (taId: string) => theoryAssessmentService.createQuestionAgent(taId),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['theoryQuestions'] }); qc.invalidateQueries({ queryKey: ['assessments'] }); toast({ title: 'AI question generated' }); },
+    onError: (e: Error) => toast({ title: 'Error', description: e.message, variant: 'destructive' }),
   });
 }
 
@@ -294,7 +380,7 @@ export function useGenerateTheoryQuestions() {
   return useMutation({
     mutationFn: ({ taId, mentorId, n }: { taId: string; mentorId: string; n: number }) =>
       theoryAssessmentService.createManyAgent(taId, mentorId, n),
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ['assessments'] }); toast({ title: 'AI questions generated' }); },
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['theoryQuestions'] }); qc.invalidateQueries({ queryKey: ['assessments'] }); toast({ title: 'AI questions generated' }); },
     onError: (e: Error) => toast({ title: 'Error', description: e.message, variant: 'destructive' }),
   });
 }
