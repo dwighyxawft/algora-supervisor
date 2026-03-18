@@ -536,9 +536,12 @@ function ScreeningDetailView({ screeningId }: { screeningId: string }) {
                         <Badge className={a.passed ? 'bg-green-500/10 text-green-400 border-green-500/20' : a.status === 'COMPLETED' ? 'bg-destructive/10 text-destructive border-destructive/20' : 'bg-primary/10 text-primary border-primary/20'}>
                           {a.passed ? 'Passed' : a.status}
                         </Badge>
+                        <Button size="sm" variant="outline" className="h-7 text-xs gap-1" onClick={() => navigate(`/supervisor/screening/${screeningId}/assessment/${a.id}`)}>
+                          <Eye className="h-3 w-3" /> Details
+                        </Button>
                         {a.status === 'COMPLETED' && (
                           <Button size="sm" variant="outline" className="h-7 text-xs gap-1" onClick={() => navigate(`/supervisor/screening/${screeningId}/assessment/${a.id}/submission`)}>
-                            <Eye className="h-3 w-3" /> View Submission
+                            <Eye className="h-3 w-3" /> Submission
                           </Button>
                         )}
                       </div>
