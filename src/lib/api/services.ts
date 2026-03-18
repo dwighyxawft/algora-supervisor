@@ -179,6 +179,7 @@ export const theoryAssessmentService = {
     apiClient.post<TheoryAssessmentQuestion[]>(TheoryAssessmentRoutes.createManyAgent(taId, mentorId, n)),
   updateQuestion: (id: string, data: Partial<CreateTheoryAssessmentQuestionDto>) =>
     apiClient.patch<TheoryAssessmentQuestion>(TheoryAssessmentRoutes.updateQuestion(id), data),
+  deleteQuestion: (id: string) => apiClient.delete<DeleteResult>(TheoryAssessmentRoutes.deleteQuestion(id)),
   remove: (id: string) => apiClient.delete<DeleteResult>(TheoryAssessmentRoutes.remove(id)),
   start: (assessmentId: string) => apiClient.post<void>(TheoryAssessmentRoutes.start(assessmentId)),
   stop: (assessmentId: string) => apiClient.post<void>(TheoryAssessmentRoutes.stop(assessmentId)),

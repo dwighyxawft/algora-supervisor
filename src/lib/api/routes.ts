@@ -425,6 +425,7 @@ export const TheoryAssessmentRoutes = {
   remove:              (id: string) => url(`theory-assessment/${id}`),                       // DELETE
   createQuestion:      () => url('theory-assessment/question'),                              // POST
   updateQuestion:      (id: string) => url(`theory-assessment/question/${id}`),              // PATCH
+  deleteQuestion:      (id: string) => url(`theory-assessment/question/${id}`),              // DELETE
   findAllQuestions:    (taId: string) => url(`theory-assessment/${taId}/questions`),          // GET
   findOneQuestion:     (id: string) => url(`theory-assessment/question/${id}`),               // GET
   start:               (assessmentId: string) => url(`theory-assessment/start/${assessmentId}/`), // POST
