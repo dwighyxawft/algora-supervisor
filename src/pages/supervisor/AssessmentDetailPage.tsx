@@ -397,19 +397,21 @@ export default function AssessmentDetailPage() {
                     <p className="text-sm font-medium">{isObjective ? 'Objective' : 'Theory'} Questions</p>
                     <p className="text-xs text-muted-foreground">{questionCount} of {targetCount} required questions created</p>
                   </div>
-                  <div className="flex flex-wrap gap-2">
-                    <Button size="sm" variant="outline" onClick={handleGenerateOne} disabled={isGenerating} className="gap-1.5">
-                      {isGenerating ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Wand2 className="h-3.5 w-3.5" />}
-                      AI: 1 Question
-                    </Button>
-                    <Button size="sm" variant="outline" onClick={handleGenerateMany} disabled={isGenerating} className="gap-1.5">
-                      {isGenerating ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Sparkles className="h-3.5 w-3.5" />}
-                      AI: Bulk Generate
-                    </Button>
-                    <Button size="sm" onClick={() => isObjective ? setShowNewOQ(true) : setShowNewTQ(true)} className="gap-1.5 gradient-primary">
-                      <Plus className="h-3.5 w-3.5" /> Manual Add
-                    </Button>
-                  </div>
+                  {questionCount < targetCount && (
+                    <div className="flex flex-wrap gap-2">
+                      <Button size="sm" variant="outline" onClick={handleGenerateOne} disabled={isGenerating} className="gap-1.5">
+                        {isGenerating ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Wand2 className="h-3.5 w-3.5" />}
+                        AI: 1 Question
+                      </Button>
+                      <Button size="sm" variant="outline" onClick={handleGenerateMany} disabled={isGenerating} className="gap-1.5">
+                        {isGenerating ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Sparkles className="h-3.5 w-3.5" />}
+                        AI: Bulk Generate
+                      </Button>
+                      <Button size="sm" onClick={() => isObjective ? setShowNewOQ(true) : setShowNewTQ(true)} className="gap-1.5 gradient-primary">
+                        <Plus className="h-3.5 w-3.5" /> Manual Add
+                      </Button>
+                    </div>
+                  )}
                 </div>
                 <Progress value={progress} className="h-1.5 mt-3" />
               </CardContent>
