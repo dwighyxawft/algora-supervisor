@@ -3,6 +3,7 @@ import {
   useScreenings, useScreening, useApproveAssessmentRetry, useApproveCodeAttempt, useRejectCodeAttempt,
   useApproveQbotRetry, useRejectQbotRetry, useMentorWorkSamples, useCreateQbot,
   useStartQbotInterview, useGenerateQbotQuestions, useCreateCodeInterview, useUpdateScreening,
+  useDeleteScreening,
 } from '@/hooks/use-api';
 import { useAuth } from '@/contexts/AuthContext';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -15,7 +16,7 @@ import { DataTable } from '@/components/supervisor/DataTable';
 import {
   ArrowLeft, CheckCircle, XCircle, Code, FileText, Bot, Shield, Loader2,
   RefreshCw, Clock, Plus, ExternalLink, Image as ImageIcon, Calendar, Video,
-  Eye, ClipboardCheck
+  Eye, ClipboardCheck, Trash2
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { reviewService, workSampleService, mentorService } from '@/lib/api/services';
@@ -214,6 +215,7 @@ function ScreeningDetailView({ screeningId }: { screeningId: string }) {
   const generateQbotQ = useGenerateQbotQuestions();
   const createCodeInterview = useCreateCodeInterview();
   const updateScreening = useUpdateScreening();
+  const deleteScreening = useDeleteScreening();
 
   const mentorId = screening?.mentor_id || '';
   const { data: workSamples } = useMentorWorkSamples(mentorId);
@@ -393,9 +395,27 @@ function ScreeningDetailView({ screeningId }: { screeningId: string }) {
 
   return (
     <div className="space-y-6">
-      <Button variant="ghost" size="sm" onClick={() => navigate('/supervisor/screening')} className="gap-2 text-muted-foreground">
-        <ArrowLeft className="h-4 w-4" /> Back to Screenings
-      </Button>
+      <div className="flex items-center justify-between">
+        <Button variant="ghost" size="sm" onClick={() => navigate('/supervisor/screening')} className="gap-2 text-muted-foreground">
+          <ArrowLeft className="h-4 w-4" /> Back to Screenings
+        </Button>
+        <Button
+          variant="outline"
+          size="sm"
+          className="gap-2 text-destructive border-destructive/30 hover:bg-destructive/10"
+          onClick={async () => {
+            if (!confirm('Are you sure you want to delete this screening? This action cannot be undone.')) return;
+            try {
+              await deleteScreening.mutateAsync(screeningId);
+              navigate('/supervisor/screening');
+            } catch {}
+          }}
+          disabled={deleteScreening.isPending}
+        >
+          {deleteScreening.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Trash2 className="h-3.5 w-3.5" />}
+          Delete Screening
+        </Button>
+      </div>
 
       {/* ====== MENTOR PROFILE HEADER ====== */}
       <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>

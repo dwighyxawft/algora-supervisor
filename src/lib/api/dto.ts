@@ -57,6 +57,7 @@ export interface CreateAssessmentDto {
   type: AssessmentType;
   status?: AssessmentStatus;
   durationMinutes: number;
+  scorePerQuestion?: number;
   score?: number;
   passed?: boolean;
 }

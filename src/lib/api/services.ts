@@ -131,6 +131,7 @@ export const screeningService = {
   findOne: (id: string) => apiClient.get<Screening>(ScreeningRoutes.findOne(id)),
   create: (data: CreateScreeningDto) => apiClient.post<Screening>(ScreeningRoutes.create(), data),
   update: (id: string, data: UpdateScreeningDto) => apiClient.patch<Screening>(ScreeningRoutes.update(id), data),
+  updateCurrentPhase: (id: string) => apiClient.patch<Screening>(ScreeningRoutes.updateCurrentPhase(id)),
   remove: (id: string) => apiClient.delete<DeleteResult>(ScreeningRoutes.remove(id)),
 };
 
