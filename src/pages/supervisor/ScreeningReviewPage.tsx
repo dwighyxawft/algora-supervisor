@@ -215,6 +215,7 @@ function ScreeningDetailView({ screeningId }: { screeningId: string }) {
   const generateQbotQ = useGenerateQbotQuestions();
   const createCodeInterview = useCreateCodeInterview();
   const updateScreening = useUpdateScreening();
+  const deleteScreening = useDeleteScreening();
 
   const mentorId = screening?.mentor_id || '';
   const { data: workSamples } = useMentorWorkSamples(mentorId);
