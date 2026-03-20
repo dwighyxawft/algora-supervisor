@@ -1,7 +1,7 @@
 import { useState, useMemo } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
-import { useScreening, useCreateAssessment, useCreateObjectiveAssessment, useCreateTheoryAssessment, useCreateObjectiveQuestion, useCreateTheoryQuestion, useReadyAssessment, useGenerateObjectiveQuestions, useGenerateTheoryQuestions } from '@/hooks/use-api';
+import { useScreening, useCreateAssessment, useCreateObjectiveQuestion, useCreateTheoryQuestion, useReadyAssessment, useGenerateObjectiveQuestions, useGenerateTheoryQuestions } from '@/hooks/use-api';
 import { AssessmentType, AssessmentStatus } from '@/lib/api/models';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
