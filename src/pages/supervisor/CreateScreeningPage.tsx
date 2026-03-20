@@ -23,7 +23,7 @@ export default function CreateScreeningPage() {
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [mentorId, setMentorId] = useState(preselectedMentorId);
-  const [assessmentRetries, setAssessmentRetries] = useState('2');
+  const [assessmentRetries, setAssessmentRetries] = useState('0');
   const navigate = useNavigate();
   const { user } = useAuth();
   const { data: mentors } = useSupervisorMentors(user?.id || '');
