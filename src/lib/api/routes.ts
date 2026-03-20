@@ -473,9 +473,10 @@ export const ProjectExamRoutes = {
 
 // ==================== SCREENING ====================
 export const ScreeningRoutes = {
-  create:  () => url('screening'),                              // POST
-  findAll: () => url('screening'),                              // GET
-  findOne: (id: string) => url(`screening/${id}`),              // GET
-  update:  (id: string) => url(`screening/${id}`),              // PATCH
-  remove:  (id: string) => url(`screening/${id}`),              // DELETE
+  create:             () => url('screening'),                              // POST
+  findAll:            () => url('screening'),                              // GET
+  findOne:            (id: string) => url(`screening/${id}`),              // GET
+  update:             (id: string) => url(`screening/${id}`),              // PATCH
+  updateCurrentPhase: (id: string) => url(`screening/currentPhase/${id}`), // PATCH
+  remove:             (id: string) => url(`screening/${id}`),              // DELETE
 } as const;

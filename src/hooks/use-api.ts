@@ -93,6 +93,26 @@ export function useUpdateScreening() {
   });
 }
 
+export function useDeleteScreening() {
+  const qc = useQueryClient();
+  const { toast } = useToast();
+  return useMutation({
+    mutationFn: (id: string) => screeningService.remove(id),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['screenings'] }); toast({ title: 'Screening deleted' }); },
+    onError: (e: Error) => toast({ title: 'Error', description: e.message, variant: 'destructive' }),
+  });
+}
+
+export function useUpdateScreeningCurrentPhase() {
+  const qc = useQueryClient();
+  const { toast } = useToast();
+  return useMutation({
+    mutationFn: (id: string) => screeningService.updateCurrentPhase(id),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['screenings'] }); toast({ title: 'Phase updated' }); },
+    onError: (e: Error) => toast({ title: 'Error', description: e.message, variant: 'destructive' }),
+  });
+}
+
 // ==================== MENTOR COMPLAINTS ====================
 export function useMentorComplaints(supervisorId: string) {
   return useQuery({

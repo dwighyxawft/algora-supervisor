@@ -109,21 +109,15 @@ export default function CreateAssessmentPage() {
         startDateTime: new Date(startDateTime),
         endDateTime: new Date(endDateTime),
         durationMinutes: parseInt(durationMinutes),
-        // scorePerQuestion removed from here
+        scorePerQuestion: parseInt(scorePerQuestion),
       };
       const assessment = await createAssessment.mutateAsync(dto);
       setCreatedAssessmentId(assessment.id);
 
-      // Create sub-assessment
-      if (type === AssessmentType.OBJECTIVE) {
-        const oa = await createObjectiveAssessment.mutateAsync({ assessmentId: assessment.id, score: parseInt(scorePerQuestion) });
-        setCreatedSubId(oa.id);
-      } else {
-        const ta = await createTheoryAssessment.mutateAsync({ assessmentId: assessment.id, score: parseInt(scorePerQuestion) });
-        setCreatedSubId(ta.id);
-      }
-      toast({ title: 'Assessment created! Now add questions.' });
-      setStep(1);
+      // Backend auto-creates the objective/theory sub-assessment,
+      // so just navigate to the assessment detail page to add questions
+      toast({ title: 'Assessment created! Redirecting to add questions.' });
+      navigate(`/supervisor/screening/${screeningId}/assessment/${assessment.id}`);
     } catch (e: any) {
       toast({ title: 'Error', description: e.message, variant: 'destructive' });
     } finally {
