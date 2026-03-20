@@ -55,8 +55,6 @@ export default function CreateAssessmentPage() {
   const [createdAssessmentId, setCreatedAssessmentId] = useState<string | null>(null);
 
   const createAssessment = useCreateAssessment();
-  const createObjectiveAssessment = useCreateObjectiveAssessment();
-  const createTheoryAssessment = useCreateTheoryAssessment();
   const createObjectiveQuestion = useCreateObjectiveQuestion();
   const createTheoryQuestion = useCreateTheoryQuestion();
   const readyAssessment = useReadyAssessment();
