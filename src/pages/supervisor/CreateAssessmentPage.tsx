@@ -53,7 +53,6 @@ export default function CreateAssessmentPage() {
 
   // Created assessment reference
   const [createdAssessmentId, setCreatedAssessmentId] = useState<string | null>(null);
-  const [createdSubId, setCreatedSubId] = useState<string | null>(null);
 
   const createAssessment = useCreateAssessment();
   const createObjectiveAssessment = useCreateObjectiveAssessment();
