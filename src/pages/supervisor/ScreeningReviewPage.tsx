@@ -395,9 +395,27 @@ function ScreeningDetailView({ screeningId }: { screeningId: string }) {
 
   return (
     <div className="space-y-6">
-      <Button variant="ghost" size="sm" onClick={() => navigate('/supervisor/screening')} className="gap-2 text-muted-foreground">
-        <ArrowLeft className="h-4 w-4" /> Back to Screenings
-      </Button>
+      <div className="flex items-center justify-between">
+        <Button variant="ghost" size="sm" onClick={() => navigate('/supervisor/screening')} className="gap-2 text-muted-foreground">
+          <ArrowLeft className="h-4 w-4" /> Back to Screenings
+        </Button>
+        <Button
+          variant="outline"
+          size="sm"
+          className="gap-2 text-destructive border-destructive/30 hover:bg-destructive/10"
+          onClick={async () => {
+            if (!confirm('Are you sure you want to delete this screening? This action cannot be undone.')) return;
+            try {
+              await deleteScreening.mutateAsync(screeningId);
+              navigate('/supervisor/screening');
+            } catch {}
+          }}
+          disabled={deleteScreening.isPending}
+        >
+          {deleteScreening.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Trash2 className="h-3.5 w-3.5" />}
+          Delete Screening
+        </Button>
+      </div>
 
       {/* ====== MENTOR PROFILE HEADER ====== */}
       <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
