@@ -400,13 +400,14 @@ function ScreeningDetailView({ screeningId }: { screeningId: string }) {
           <ArrowLeft className="h-4 w-4" /> Back to Screenings
         </Button>
         <Button
-          variant="outline"
+          variant="destructive"
           size="sm"
-          className="gap-2 text-destructive border-destructive/30 hover:bg-destructive/10"
+          className="gap-2"
           onClick={async () => {
             if (!confirm('Are you sure you want to delete this screening? This action cannot be undone.')) return;
             try {
               await deleteScreening.mutateAsync(screeningId);
+              toast({ title: 'Screening deleted successfully' });
               navigate('/supervisor/screening');
             } catch {}
           }}
