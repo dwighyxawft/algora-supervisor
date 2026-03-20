@@ -16,7 +16,7 @@ import { DataTable } from '@/components/supervisor/DataTable';
 import {
   ArrowLeft, CheckCircle, XCircle, Code, FileText, Bot, Shield, Loader2,
   RefreshCw, Clock, Plus, ExternalLink, Image as ImageIcon, Calendar, Video,
-  Eye, ClipboardCheck
+  Eye, ClipboardCheck, Trash2
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { reviewService, workSampleService, mentorService } from '@/lib/api/services';
