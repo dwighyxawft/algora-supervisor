@@ -262,7 +262,10 @@ function ScreeningDetailView({ screeningId }: { screeningId: string }) {
   const handleCreateQbot = async () => {
     if (!screening) return;
     try {
-      const qbot = await createQbot.mutateAsync(screening.id);
+      const qbot = await createQbot.mutateAsync({
+        screeningId: screening.id,
+        startDate: new Date(),
+      });
       if (qbot?.id) {
         await generateQbotQ.mutateAsync({ qbotId: qbot.id, mentorId: screening.mentor_id });
       }

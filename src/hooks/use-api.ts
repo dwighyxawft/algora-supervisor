@@ -451,7 +451,8 @@ export function useCreateQbot() {
   const qc = useQueryClient();
   const { toast } = useToast();
   return useMutation({
-    mutationFn: (screeningId: string) => qbotService.create(screeningId),
+    mutationFn: ({ screeningId, startDate }: { screeningId: string; startDate: Date }) =>
+      qbotService.create(screeningId, { startDate }),
     onSuccess: () => { qc.invalidateQueries({ queryKey: ['screenings'] }); qc.invalidateQueries({ queryKey: ['qbots'] }); toast({ title: 'QBot interview created' }); },
     onError: (e: Error) => toast({ title: 'Error', description: e.message, variant: 'destructive' }),
   });
@@ -461,7 +462,7 @@ export function useStartQbotInterview() {
   const qc = useQueryClient();
   const { toast } = useToast();
   return useMutation({
-    mutationFn: (qbotId: string) => qbotService.startInterview(qbotId),
+    mutationFn: (qbotId: string) => qbotService.updateStatus(qbotId, 'in_progress'),
     onSuccess: () => { qc.invalidateQueries({ queryKey: ['screenings'] }); toast({ title: 'QBot interview started' }); },
     onError: (e: Error) => toast({ title: 'Error', description: e.message, variant: 'destructive' }),
   });
@@ -471,8 +472,13 @@ export function useGenerateQbotQuestions() {
   const qc = useQueryClient();
   const { toast } = useToast();
   return useMutation({
-    mutationFn: ({ qbotId, mentorId }: { qbotId: string; mentorId: string }) => qbotService.generateManyAi(qbotId, mentorId),
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ['screenings'] }); toast({ title: 'AI questions generated for QBot' }); },
+    mutationFn: ({ qbotId, mentorId }: { qbotId: string; mentorId: string }) =>
+      qbotService.createQuestionnaire({
+        qbot_id: qbotId,
+        mentor_id: mentorId,
+        question: 'Generate the opening interview question for this mentor.',
+      }),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['screenings'] }); qc.invalidateQueries({ queryKey: ['qbots'] }); toast({ title: 'QBot question generated' }); },
     onError: (e: Error) => toast({ title: 'Error', description: e.message, variant: 'destructive' }),
   });
 }
@@ -481,7 +487,7 @@ export function useApproveQbotRetry() {
   const qc = useQueryClient();
   const { toast } = useToast();
   return useMutation({
-    mutationFn: (id: string) => qbotService.approveRetry(id),
+    mutationFn: (id: string) => qbotService.updateRetryStatus(id, 'APPROVED'),
     onSuccess: () => { qc.invalidateQueries({ queryKey: ['screenings'] }); toast({ title: 'QBot retry approved' }); },
   });
 }
@@ -490,7 +496,7 @@ export function useRejectQbotRetry() {
   const qc = useQueryClient();
   const { toast } = useToast();
   return useMutation({
-    mutationFn: (id: string) => qbotService.rejectRetry(id),
+    mutationFn: (id: string) => qbotService.updateRetryStatus(id, 'REJECTED'),
     onSuccess: () => { qc.invalidateQueries({ queryKey: ['screenings'] }); toast({ title: 'QBot retry rejected' }); },
   });
 }
