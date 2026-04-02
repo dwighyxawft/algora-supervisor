@@ -373,11 +373,8 @@ export const QbotRoutes = {
   createQuestionnaire:  () => url('qbot/questionnaire'),                                        // POST
   createResponse:       () => url('qbot/response'),                                             // POST
   createRetry:          () => url('qbot/retry'),                                                // POST
-  approveRetry:         (retryId: string) => url(`qbot/retry/${retryId}`),              // PATCH
-  rejectRetry:          (retryId: string) => url(`qbot/retry/${retryId}`),               // PATCH
+  updateRetry:          (retryId: string) => url(`qbot/retry/${retryId}`),                     // PATCH
   updateStatus:         (id: string) => url(`qbot/${id}/status`),                               // PATCH
-  generateManyAi:       (id: string, mentorId: string) => url(`qbot/${id}/ai-questions/${mentorId}`), // This might be custom, not in controller explicitly?
-  startInterview:       (id: string) => url(`qbot/${id}/start`), // This also seems assumed
 } as const;
 
 // ==================== SCHEDULE ====================

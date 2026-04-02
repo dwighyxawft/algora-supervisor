@@ -64,6 +64,9 @@ import type {
   TheoryAssessment,
   TheoryAssessmentQuestion,
   CodeInterviewAttempt,
+  Questionnaire,
+  QbotResponse,
+  QBotInterviewRetry,
 } from './models';
 
 import type {
@@ -89,6 +92,9 @@ import type {
   CreateCodeInterviewTaskDto,
   CreateCodeInterviewAttemptDto,
   CreateCodingWorkspaceDto,
+  CreateQuestionnaireDto,
+  CreateResponseDto,
+  QbotInterviewRetryDto,
 } from './dto';
 
 export { BASE_URL } from './routes';
@@ -232,14 +238,19 @@ export const reviewService = {
 
 // ==================== QBOT ====================
 export const qbotService = {
-  create: (screeningId: string) => apiClient.post<Qbot>(QbotRoutes.create(screeningId)),
+  create: (screeningId: string, body: { startDate: Date }) => apiClient.post<Qbot>(QbotRoutes.create(screeningId), body),
   findAll: () => apiClient.get<Qbot[]>(QbotRoutes.findAll()),
   findOne: (id: string) => apiClient.get<Qbot>(QbotRoutes.findOne(id)),
-  generateManyAi: (qbotId: string, mentorId: string) =>
-    apiClient.post<any>(QbotRoutes.generateManyAi(qbotId, mentorId)),
-  startInterview: (qbotId: string) => apiClient.post<void>(QbotRoutes.startInterview(qbotId)),
-  approveRetry: (retryId: string) => apiClient.patch<void>(QbotRoutes.approveRetry(retryId)),
-  rejectRetry: (retryId: string) => apiClient.patch<void>(QbotRoutes.rejectRetry(retryId)),
+  updateStatus: (qbotId: string, status: 'pending' | 'in_progress' | 'completed') =>
+    apiClient.patch<Qbot>(QbotRoutes.updateStatus(qbotId), { status }),
+  createQuestionnaire: (data: CreateQuestionnaireDto) =>
+    apiClient.post<Questionnaire>(QbotRoutes.createQuestionnaire(), data),
+  createResponse: (data: CreateResponseDto) =>
+    apiClient.post<QbotResponse>(QbotRoutes.createResponse(), data),
+  createRetry: (data: QbotInterviewRetryDto) =>
+    apiClient.post<QBotInterviewRetry>(QbotRoutes.createRetry(), data),
+  updateRetryStatus: (retryId: string, status: 'APPROVED' | 'REJECTED') =>
+    apiClient.patch<QBotInterviewRetry>(QbotRoutes.updateRetry(retryId), { status }),
 };
 
 // ==================== NOTIFICATIONS ====================
