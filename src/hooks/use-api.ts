@@ -500,6 +500,21 @@ export function useMentorWorkSamples(mentorId: string) {
   return useQuery({ queryKey: ['workSamples', mentorId], queryFn: () => workSampleService.findByMentor(mentorId), enabled: !!mentorId });
 }
 
+export function useUpdateWorkSample() {
+  const qc = useQueryClient();
+  const { toast } = useToast();
+  return useMutation({
+    mutationFn: ({ id, status }: { id: string; status: 'accepted' | 'rejected' | 'pending' }) =>
+      workSampleService.update(id, { status }),
+    onSuccess: (_data, variables) => {
+      qc.invalidateQueries({ queryKey: ['workSamples'] });
+      qc.invalidateQueries({ queryKey: ['screenings'] });
+      toast({ title: `Work sample ${variables.status}` });
+    },
+    onError: (e: Error) => toast({ title: 'Error', description: e.message, variant: 'destructive' }),
+  });
+}
+
 // ==================== SUPERVISOR REVIEWS ====================
 export function useStartReview() {
   const { toast } = useToast();

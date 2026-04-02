@@ -452,6 +452,7 @@ export const WorkSampleRoutes = {
   findAll:      () => url('work-sample'),                             // GET
   findByMentor: (mentorId: string) => url(`work-sample/mentor/${mentorId}`), // GET
   findOne:      (id: string) => url(`work-sample/${id}`),             // GET
+  update:       (id: string) => url(`work-sample/${id}`),             // PATCH
   remove:       (id: string) => url(`work-sample/${id}`),             // DELETE
 } as const;
 

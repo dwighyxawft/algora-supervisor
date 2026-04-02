@@ -3,6 +3,7 @@ import {
   useScreenings, useScreening, useApproveAssessmentRetry, useApproveCodeAttempt, useRejectCodeAttempt,
   useApproveQbotRetry, useRejectQbotRetry, useMentorWorkSamples, useCreateQbot,
   useStartQbotInterview, useGenerateQbotQuestions, useCreateCodeInterview, useUpdateScreening,
+  useUpdateWorkSample,
   useDeleteScreening,
 } from '@/hooks/use-api';
 import { useAuth } from '@/contexts/AuthContext';
@@ -215,6 +216,7 @@ function ScreeningDetailView({ screeningId }: { screeningId: string }) {
   const generateQbotQ = useGenerateQbotQuestions();
   const createCodeInterview = useCreateCodeInterview();
   const updateScreening = useUpdateScreening();
+  const updateWorkSample = useUpdateWorkSample();
   const deleteScreening = useDeleteScreening();
 
   const mentorId = screening?.mentor_id || '';
@@ -248,6 +250,13 @@ function ScreeningDetailView({ screeningId }: { screeningId: string }) {
     } finally {
       setRejecting(false);
     }
+  };
+
+  const handleUpdateWorkSampleStatus = async (sampleId: string, status: 'accepted' | 'rejected' | 'pending') => {
+    try {
+      await updateWorkSample.mutateAsync({ id: sampleId, status });
+      refetch();
+    } catch {}
   };
 
   const handleCreateQbot = async () => {
@@ -652,7 +661,12 @@ function ScreeningDetailView({ screeningId }: { screeningId: string }) {
                             </Button>
                           )}
                           {ws.status === 'pending' && canAccessPhase(2) && screening.status !== 'FAILED' && (
-                            <Button size="sm" className="h-7 text-xs gap-1 gradient-primary">
+                            <Button
+                              size="sm"
+                              className="h-7 text-xs gap-1 gradient-primary"
+                              onClick={() => handleUpdateWorkSampleStatus(ws.id, 'accepted')}
+                              disabled={updateWorkSample.isPending}
+                            >
                               <CheckCircle className="h-3 w-3" /> Accept
                             </Button>
                           )}
