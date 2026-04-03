@@ -263,13 +263,29 @@ function ScreeningDetailView({ screeningId }: { screeningId: string }) {
   const handleCreateQbot = async () => {
     if (!screening) return;
     try {
-      const qbot = await createQbot.mutateAsync({
+      await createQbot.mutateAsync({
         screeningId: screening.id,
         startDate: new Date(),
       });
-      if (qbot?.id) {
-        await generateQbotQ.mutateAsync({ qbotId: qbot.id, mentorId: screening.mentor_id });
-      }
+      refetch();
+    } catch {}
+  };
+
+  const handleGenerateQuestion = async (qbotId: string) => {
+    if (!screening) return;
+    try {
+      await createQbotQuestion.mutateAsync({
+        qbot_id: qbotId,
+        mentor_id: screening.mentor_id,
+        question: 'Generate the next interview question for this mentor.',
+      });
+      refetch();
+    } catch {}
+  };
+
+  const handleMarkQbotReady = async (qbotId: string) => {
+    try {
+      await updateQbotStatus.mutateAsync({ qbotId, status: 'ready' });
       refetch();
     } catch {}
   };
