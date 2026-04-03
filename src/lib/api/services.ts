@@ -243,8 +243,11 @@ export const qbotService = {
   findOne: (id: string) => apiClient.get<Qbot>(QbotRoutes.findOne(id)),
   updateStatus: (qbotId: string, status: 'pending' | 'ready' | 'in_progress' | 'completed') =>
     apiClient.patch<Qbot>(QbotRoutes.updateStatus(qbotId), { status }),
+  evaluate: (id: string) => apiClient.patch<Qbot>(QbotRoutes.evaluate(id)),
   createQuestionnaire: (data: CreateQuestionnaireDto) =>
     apiClient.post<Questionnaire>(QbotRoutes.createQuestionnaire(), data),
+  getQuestionnairesByQbot: (qbotId: string) =>
+    apiClient.get<Questionnaire[]>(QbotRoutes.getQuestionnairesByQbot(qbotId)),
   createResponse: (data: CreateResponseDto) =>
     apiClient.post<QbotResponse>(QbotRoutes.createResponse(), data),
   createRetry: (data: QbotInterviewRetryDto) =>
