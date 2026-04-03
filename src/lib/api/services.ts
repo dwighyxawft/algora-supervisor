@@ -241,7 +241,7 @@ export const qbotService = {
   create: (screeningId: string, body: { startDate: Date }) => apiClient.post<Qbot>(QbotRoutes.create(screeningId), body),
   findAll: () => apiClient.get<Qbot[]>(QbotRoutes.findAll()),
   findOne: (id: string) => apiClient.get<Qbot>(QbotRoutes.findOne(id)),
-  updateStatus: (qbotId: string, status: 'pending' | 'in_progress' | 'completed') =>
+  updateStatus: (qbotId: string, status: 'pending' | 'ready' | 'in_progress' | 'completed') =>
     apiClient.patch<Qbot>(QbotRoutes.updateStatus(qbotId), { status }),
   createQuestionnaire: (data: CreateQuestionnaireDto) =>
     apiClient.post<Questionnaire>(QbotRoutes.createQuestionnaire(), data),

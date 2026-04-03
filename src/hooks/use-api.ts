@@ -483,6 +483,36 @@ export function useGenerateQbotQuestions() {
   });
 }
 
+export function useQbot(id: string) {
+  return useQuery({
+    queryKey: ['qbots', id],
+    queryFn: () => qbotService.findOne(id),
+    enabled: !!id,
+  });
+}
+
+export function useUpdateQbotStatus() {
+  const qc = useQueryClient();
+  const { toast } = useToast();
+  return useMutation({
+    mutationFn: ({ qbotId, status }: { qbotId: string; status: 'pending' | 'ready' | 'in_progress' | 'completed' }) =>
+      qbotService.updateStatus(qbotId, status),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['screenings'] }); qc.invalidateQueries({ queryKey: ['qbots'] }); toast({ title: 'QBot status updated' }); },
+    onError: (e: Error) => toast({ title: 'Error', description: e.message, variant: 'destructive' }),
+  });
+}
+
+export function useCreateQbotQuestionnaire() {
+  const qc = useQueryClient();
+  const { toast } = useToast();
+  return useMutation({
+    mutationFn: (data: { qbot_id: string; mentor_id: string; question: string }) =>
+      qbotService.createQuestionnaire(data),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['screenings'] }); qc.invalidateQueries({ queryKey: ['qbots'] }); toast({ title: 'Question generated' }); },
+    onError: (e: Error) => toast({ title: 'Error', description: e.message, variant: 'destructive' }),
+  });
+}
+
 export function useApproveQbotRetry() {
   const qc = useQueryClient();
   const { toast } = useToast();
