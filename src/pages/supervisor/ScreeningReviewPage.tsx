@@ -217,6 +217,8 @@ function ScreeningDetailView({ screeningId }: { screeningId: string }) {
   const updateScreening = useUpdateScreening();
   const updateWorkSample = useUpdateWorkSample();
   const deleteScreening = useDeleteScreening();
+  const updateQbotStatus = useUpdateQbotStatus();
+  const createQbotQuestion = useCreateQbotQuestionnaire();
 
   const mentorId = screening?.mentor_id || '';
   const { data: workSamples } = useMentorWorkSamples(mentorId);
