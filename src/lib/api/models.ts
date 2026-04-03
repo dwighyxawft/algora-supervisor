@@ -1106,6 +1106,7 @@ export interface Screening {
   codeInterviewAttempts?: CodeInterviewAttempt[];
   supervisorReviews?: SupervisorReview[];
   qbots?: Qbot[];
+  qbotRetries?: QBotInterviewRetry[];
   createdAt: Date;
   updatedAt: Date;
 }
