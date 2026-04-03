@@ -4,6 +4,7 @@ import {
   useApproveQbotRetry, useRejectQbotRetry, useMentorWorkSamples, useCreateQbot,
   useStartQbotInterview, useGenerateQbotQuestions, useCreateCodeInterview, useUpdateScreening,
   useUpdateWorkSample, useDeleteScreening, useUpdateQbotStatus, useCreateQbotQuestionnaire,
+  useEvaluateQbot,
 } from '@/hooks/use-api';
 import { useAuth } from '@/contexts/AuthContext';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -219,6 +220,7 @@ function ScreeningDetailView({ screeningId }: { screeningId: string }) {
   const deleteScreening = useDeleteScreening();
   const updateQbotStatus = useUpdateQbotStatus();
   const createQbotQuestion = useCreateQbotQuestionnaire();
+  const evaluateQbot = useEvaluateQbot();
 
   const mentorId = screening?.mentor_id || '';
   const { data: workSamples } = useMentorWorkSamples(mentorId);
@@ -286,6 +288,13 @@ function ScreeningDetailView({ screeningId }: { screeningId: string }) {
   const handleMarkQbotReady = async (qbotId: string) => {
     try {
       await updateQbotStatus.mutateAsync({ qbotId, status: 'ready' });
+      refetch();
+    } catch {}
+  };
+
+  const handleEvaluateQbot = async (qbotId: string) => {
+    try {
+      await evaluateQbot.mutateAsync(qbotId);
       refetch();
     } catch {}
   };
@@ -809,6 +818,19 @@ function ScreeningDetailView({ screeningId }: { screeningId: string }) {
                         {(isCompleted || isInProgress || isReady) && (
                           <Button size="sm" variant="outline" className="h-7 text-xs gap-1" onClick={() => navigate(`/supervisor/screening/${screeningId}/qbot/${q.id}/response`)}>
                             <Eye className="h-3 w-3" /> View Full Response
+                          </Button>
+                        )}
+
+                        {/* Evaluate button - show when completed but not yet evaluated */}
+                        {isCompleted && !q.satisfactory && !q.report && (
+                          <Button
+                            size="sm"
+                            className="gap-1.5 text-xs gradient-primary"
+                            onClick={() => handleEvaluateQbot(q.id)}
+                            disabled={evaluateQbot.isPending}
+                          >
+                            {evaluateQbot.isPending ? <Loader2 className="h-3 w-3 animate-spin" /> : <ClipboardCheck className="h-3 w-3" />}
+                            Evaluate Interview
                           </Button>
                         )}
                       </div>
