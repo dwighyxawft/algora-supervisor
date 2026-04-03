@@ -820,6 +820,19 @@ function ScreeningDetailView({ screeningId }: { screeningId: string }) {
                             <Eye className="h-3 w-3" /> View Full Response
                           </Button>
                         )}
+
+                        {/* Evaluate button - show when completed but not yet evaluated */}
+                        {isCompleted && !q.satisfactory && !q.report && (
+                          <Button
+                            size="sm"
+                            className="gap-1.5 text-xs gradient-primary"
+                            onClick={() => handleEvaluateQbot(q.id)}
+                            disabled={evaluateQbot.isPending}
+                          >
+                            {evaluateQbot.isPending ? <Loader2 className="h-3 w-3 animate-spin" /> : <ClipboardCheck className="h-3 w-3" />}
+                            Evaluate Interview
+                          </Button>
+                        )}
                       </div>
 
                       {/* Not enough questions warning */}
