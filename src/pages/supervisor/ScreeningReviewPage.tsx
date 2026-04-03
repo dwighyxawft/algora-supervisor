@@ -292,6 +292,13 @@ function ScreeningDetailView({ screeningId }: { screeningId: string }) {
     } catch {}
   };
 
+  const handleEvaluateQbot = async (qbotId: string) => {
+    try {
+      await evaluateQbot.mutateAsync(qbotId);
+      refetch();
+    } catch {}
+  };
+
   const handleCreateCodeInterview = async () => {
     if (!screening) return;
     const dto: CreateCodeInterviewDto = {
