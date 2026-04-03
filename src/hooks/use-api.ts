@@ -513,6 +513,16 @@ export function useCreateQbotQuestionnaire() {
   });
 }
 
+export function useEvaluateQbot() {
+  const qc = useQueryClient();
+  const { toast } = useToast();
+  return useMutation({
+    mutationFn: (id: string) => qbotService.evaluate(id),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['screenings'] }); qc.invalidateQueries({ queryKey: ['qbots'] }); toast({ title: 'QBot evaluated successfully' }); },
+    onError: (e: Error) => toast({ title: 'Evaluation failed', description: e.message, variant: 'destructive' }),
+  });
+}
+
 export function useApproveQbotRetry() {
   const qc = useQueryClient();
   const { toast } = useToast();

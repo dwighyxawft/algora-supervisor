@@ -4,6 +4,7 @@ import {
   useApproveQbotRetry, useRejectQbotRetry, useMentorWorkSamples, useCreateQbot,
   useStartQbotInterview, useGenerateQbotQuestions, useCreateCodeInterview, useUpdateScreening,
   useUpdateWorkSample, useDeleteScreening, useUpdateQbotStatus, useCreateQbotQuestionnaire,
+  useEvaluateQbot,
 } from '@/hooks/use-api';
 import { useAuth } from '@/contexts/AuthContext';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
