@@ -295,6 +295,28 @@ function ScreeningDetailView({ screeningId }: { screeningId: string }) {
     } catch {}
   };
 
+  const handleCreateManualQuestion = async (qbotId: string) => {
+    if (!screening || !manualQuestion.trim()) return;
+    const mentorUuid = screening.mentor_id || screening.mentor?.id;
+    if (!mentorUuid) return;
+    try {
+      await createQbotQuestionManual.mutateAsync({
+        qbot_id: qbotId,
+        mentor_id: mentorUuid,
+        question: manualQuestion.trim(),
+      });
+      setManualQuestion('');
+      refetch();
+    } catch {}
+  };
+
+  const handleDeleteQuestionnaire = async (questionnaireId: string) => {
+    try {
+      await deleteQbotQuestion.mutateAsync(questionnaireId);
+      refetch();
+    } catch {}
+  };
+
   const handleDeleteQbot = async (qbotId: string) => {
     try {
       await deleteQbot.mutateAsync(qbotId);
