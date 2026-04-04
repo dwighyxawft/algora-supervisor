@@ -247,6 +247,10 @@ export const qbotService = {
   remove: (id: string) => apiClient.delete<void>(QbotRoutes.remove(id)),
   createQuestionnaire: (data: CreateQuestionnaireDto) =>
     apiClient.post<Questionnaire>(QbotRoutes.createQuestionnaire(), data),
+  createQuestionnaireManual: (data: CreateQuestionnaireDto) =>
+    apiClient.post<Questionnaire>(QbotRoutes.createQuestionnaireManual(), data),
+  deleteQuestionnaire: (id: string) =>
+    apiClient.delete<DeleteResult>(QbotRoutes.deleteQuestionnaire(id)),
   getQuestionnairesByQbot: (qbotId: string) =>
     apiClient.get<Questionnaire[]>(QbotRoutes.getQuestionnairesByQbot(qbotId)),
   createResponse: (data: CreateResponseDto) =>
