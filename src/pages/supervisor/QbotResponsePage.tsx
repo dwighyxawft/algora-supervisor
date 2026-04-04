@@ -1,21 +1,45 @@
 import { useParams, useNavigate } from 'react-router-dom';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { qbotService } from '@/lib/api/services';
+import { useUpdateQbotStatus, useDeleteQbotQuestionnaire, useEvaluateQbot } from '@/hooks/use-api';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
-import { ArrowLeft, CheckCircle, XCircle, Bot } from 'lucide-react';
+import { ArrowLeft, CheckCircle, Bot, Loader2, ClipboardCheck, Trash2 } from 'lucide-react';
 import { motion } from 'framer-motion';
 
 export default function QbotResponsePage() {
   const { screeningId, qbotId } = useParams();
   const navigate = useNavigate();
-  const { data: qbot, isLoading } = useQuery({
+  const qc = useQueryClient();
+
+  const { data: qbot, isLoading, refetch } = useQuery({
     queryKey: ['qbot', qbotId],
     queryFn: () => qbotService.findOne(qbotId!),
     enabled: !!qbotId,
   });
+
+  const updateQbotStatus = useUpdateQbotStatus();
+  const deleteQuestion = useDeleteQbotQuestionnaire();
+  const evaluateQbot = useEvaluateQbot();
+
+  const handleMarkReady = async () => {
+    if (!qbotId) return;
+    await updateQbotStatus.mutateAsync({ qbotId, status: 'ready' });
+    refetch();
+  };
+
+  const handleDeleteQuestion = async (questionId: string) => {
+    await deleteQuestion.mutateAsync(questionId);
+    refetch();
+  };
+
+  const handleEvaluate = async () => {
+    if (!qbotId) return;
+    await evaluateQbot.mutateAsync(qbotId);
+    refetch();
+  };
 
   if (isLoading || !qbot) {
     return (
@@ -25,6 +49,12 @@ export default function QbotResponsePage() {
       </div>
     );
   }
+
+  const questionCount = qbot.questionnaires?.length || 0;
+  const isPending = qbot.status === 'pending';
+  const isCompleted = qbot.status === 'completed';
+  const canMarkReady = isPending && questionCount >= 1;
+  const needsEvaluation = isCompleted && !qbot.satisfactory && !qbot.report;
 
   return (
     <div className="space-y-6 max-w-4xl mx-auto">
@@ -41,18 +71,34 @@ export default function QbotResponsePage() {
                   <Bot className="h-5 w-5 text-primary" />
                 </div>
                 <div>
-                  <CardTitle>QBot AI Interview Response</CardTitle>
+                  <CardTitle>QBot AI Interview Details</CardTitle>
                   <CardDescription>
-                    Status: {qbot.status} · Started: {qbot.startedAt ? new Date(qbot.startedAt).toLocaleString() : 'Not started'}
+                    Status: <span className="capitalize">{qbot.status}</span> · Started: {qbot.startedAt ? new Date(qbot.startedAt).toLocaleString() : 'Not started'}
                   </CardDescription>
                 </div>
               </div>
-              <Badge className={qbot.satisfactory ? 'bg-green-500/10 text-green-400 border-green-500/20' : 'bg-destructive/10 text-destructive border-destructive/20'}>
-                {qbot.satisfactory ? 'SATISFACTORY' : 'NOT SATISFACTORY'}
+              <Badge className={qbot.satisfactory ? 'bg-green-500/10 text-green-400 border-green-500/20' : isCompleted ? 'bg-destructive/10 text-destructive border-destructive/20' : 'bg-muted text-muted-foreground'}>
+                {qbot.satisfactory ? 'SATISFACTORY' : isCompleted ? 'NOT SATISFACTORY' : qbot.status.toUpperCase()}
               </Badge>
             </div>
           </CardHeader>
           <CardContent className="space-y-6">
+            {/* Action buttons */}
+            <div className="flex flex-wrap gap-2">
+              {canMarkReady && (
+                <Button className="gap-1.5 gradient-primary" onClick={handleMarkReady} disabled={updateQbotStatus.isPending}>
+                  {updateQbotStatus.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle className="h-4 w-4" />}
+                  Mark as Ready
+                </Button>
+              )}
+              {needsEvaluation && (
+                <Button className="gap-1.5 gradient-primary" onClick={handleEvaluate} disabled={evaluateQbot.isPending}>
+                  {evaluateQbot.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <ClipboardCheck className="h-4 w-4" />}
+                  Evaluate Interview
+                </Button>
+              )}
+            </div>
+
             {/* AI Evaluation Report */}
             {qbot.report && (
               <div className="p-4 rounded-lg bg-primary/5 border border-primary/20">
@@ -65,12 +111,12 @@ export default function QbotResponsePage() {
             <div className="grid grid-cols-3 gap-4 p-4 rounded-lg bg-muted/30">
               <div className="text-center">
                 <p className="text-xs text-muted-foreground">Questions</p>
-                <p className="text-lg font-bold">{qbot.questionnaires?.length || 0}</p>
+                <p className="text-lg font-bold">{questionCount}</p>
               </div>
               <div className="text-center">
                 <p className="text-xs text-muted-foreground">Result</p>
-                <p className={`text-lg font-bold ${qbot.satisfactory ? 'text-green-400' : 'text-destructive'}`}>
-                  {qbot.satisfactory ? 'Pass' : 'Fail'}
+                <p className={`text-lg font-bold ${qbot.satisfactory ? 'text-green-400' : isCompleted ? 'text-destructive' : 'text-muted-foreground'}`}>
+                  {qbot.satisfactory ? 'Pass' : isCompleted ? 'Fail' : '—'}
                 </p>
               </div>
               <div className="text-center">
@@ -86,9 +132,16 @@ export default function QbotResponsePage() {
                 qbot.questionnaires.map((qn, i) => (
                   <Card key={qn.id} className="bg-muted/20">
                     <CardContent className="p-4 space-y-3">
-                      <div className="flex items-start gap-3">
-                        <span className="text-xs font-bold text-primary bg-primary/10 px-2 py-0.5 rounded shrink-0">Q{i + 1}</span>
-                        <p className="text-sm font-medium">{qn.question}</p>
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="flex items-start gap-3">
+                          <span className="text-xs font-bold text-primary bg-primary/10 px-2 py-0.5 rounded shrink-0">Q{i + 1}</span>
+                          <p className="text-sm font-medium">{qn.question}</p>
+                        </div>
+                        {isPending && (
+                          <Button size="sm" variant="ghost" className="h-6 w-6 p-0 text-destructive shrink-0" onClick={() => handleDeleteQuestion(qn.id)} disabled={deleteQuestion.isPending}>
+                            <Trash2 className="h-3 w-3" />
+                          </Button>
+                        )}
                       </div>
                       {qn.answers ? (
                         <div className="ml-8 space-y-2">
