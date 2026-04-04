@@ -782,7 +782,7 @@ function ScreeningDetailView({ screeningId }: { screeningId: string }) {
                   </div>
                   <div>
                     <CardTitle className="text-sm">Phase 3 — QBot AI Coding Interview</CardTitle>
-                    <CardDescription>AI-powered coding interview. Min 5 questions required. Max 2 retries.</CardDescription>
+                    <CardDescription>AI-powered coding interview. Generate 1 opening question, then mark as ready.</CardDescription>
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
