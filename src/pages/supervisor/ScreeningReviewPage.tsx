@@ -800,7 +800,7 @@ function ScreeningDetailView({ screeningId }: { screeningId: string }) {
               {screening.qbots && screening.qbots.length > 0 ? (
                 screening.qbots.map((q, qi) => {
                   const questionCount = q.questionnaires?.length || 0;
-                  const hasEnoughQuestions = questionCount >= 5;
+                  const hasOpeningQuestion = questionCount >= 1;
                   const isNotStartedOrPending = q.status === 'pending';
                   const isReady = q.status === 'ready';
                   const isCompleted = q.status === 'completed';
@@ -808,90 +808,56 @@ function ScreeningDetailView({ screeningId }: { screeningId: string }) {
 
                   return (
                     <div key={q.id} className="p-4 rounded-lg bg-muted/30 space-y-4">
-                      {/* Header */}
                       <div className="flex items-center justify-between">
                         <div>
                           <p className="text-sm font-medium">QBot Interview #{qi + 1}</p>
                           <p className="text-xs text-muted-foreground">
-                            Status: <span className="capitalize">{q.status}</span> · Questions: {questionCount}/5+
+                            Status: <span className="capitalize">{q.status}</span> · Questions: {questionCount}
                             {q.startedAt && ` · Started: ${new Date(q.startedAt).toLocaleString()}`}
                           </p>
                         </div>
-                        <div className="flex items-center gap-2">
-                          <Badge className={q.satisfactory ? 'bg-green-500/10 text-green-400 border-green-500/20' : isCompleted ? 'bg-destructive/10 text-destructive border-destructive/20' : isReady ? 'bg-amber-500/10 text-amber-400 border-amber-500/20' : 'bg-muted text-muted-foreground'}>
-                            {q.satisfactory ? 'Satisfactory' : isCompleted ? 'Not Satisfactory' : isReady ? 'Ready' : isInProgress ? 'In Progress' : 'Pending'}
-                          </Badge>
-                        </div>
+                        <Badge className={q.satisfactory ? 'bg-green-500/10 text-green-400 border-green-500/20' : isCompleted ? 'bg-destructive/10 text-destructive border-destructive/20' : isReady ? 'bg-amber-500/10 text-amber-400 border-amber-500/20' : 'bg-muted text-muted-foreground'}>
+                          {q.satisfactory ? 'Satisfactory' : isCompleted ? 'Not Satisfactory' : isReady ? 'Ready' : isInProgress ? 'In Progress' : 'Pending'}
+                        </Badge>
                       </div>
+
+                      {/* Generate opening question - only when pending and no question yet */}
+                      {isNotStartedOrPending && !hasOpeningQuestion && (
+                        <div className="space-y-3">
+                          <p className="text-xs text-muted-foreground">Generate or write the opening question for this interview:</p>
+                          <div className="flex flex-wrap gap-2">
+                            <Button size="sm" variant="outline" className="gap-1.5 text-xs" onClick={() => handleGenerateQuestion(q.id)} disabled={createQbotQuestion.isPending}>
+                              {createQbotQuestion.isPending ? <Loader2 className="h-3 w-3 animate-spin" /> : <Bot className="h-3 w-3" />}
+                              Generate Opening Question (AI)
+                            </Button>
+                          </div>
+                          <div className="flex gap-2">
+                            <Input placeholder="Or type a manual opening question..." value={manualQuestion} onChange={(e) => setManualQuestion(e.target.value)} className="text-xs h-8" />
+                            <Button size="sm" className="gap-1.5 text-xs shrink-0" onClick={() => handleCreateManualQuestion(q.id)} disabled={createQbotQuestionManual.isPending || !manualQuestion.trim()}>
+                              {createQbotQuestionManual.isPending ? <Loader2 className="h-3 w-3 animate-spin" /> : <Plus className="h-3 w-3" />}
+                              Add Manually
+                            </Button>
+                          </div>
+                        </div>
+                      )}
 
                       {/* Action buttons */}
                       <div className="flex flex-wrap gap-2">
-                        {/* Generate question button - show when pending and less than enough questions */}
-                        {isNotStartedOrPending && (
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            className="gap-1.5 text-xs"
-                            onClick={() => handleGenerateQuestion(q.id)}
-                            disabled={createQbotQuestion.isPending}
-                          >
-                            {createQbotQuestion.isPending ? <Loader2 className="h-3 w-3 animate-spin" /> : <Bot className="h-3 w-3" />}
-                            Generate Question (AI)
-                          </Button>
-                        )}
-
-                        {/* Mark as Ready button - when 5+ questions and still pending */}
-                        {isNotStartedOrPending && hasEnoughQuestions && (
-                          <Button
-                            size="sm"
-                            className="gap-1.5 text-xs gradient-primary"
-                            onClick={() => handleMarkQbotReady(q.id)}
-                            disabled={updateQbotStatus.isPending}
-                          >
-                            {updateQbotStatus.isPending ? <Loader2 className="h-3 w-3 animate-spin" /> : <CheckCircle className="h-3 w-3" />}
-                            Mark as Ready
-                          </Button>
-                        )}
-
-                        {/* View full response */}
-                        {(isCompleted || isInProgress || isReady) && (
-                          <Button size="sm" variant="outline" className="h-7 text-xs gap-1" onClick={() => navigate(`/supervisor/screening/${screeningId}/qbot/${q.id}/response`)}>
-                            <Eye className="h-3 w-3" /> View Full Response
-                          </Button>
-                        )}
-
-                        {/* Evaluate button - show when completed but not yet evaluated */}
+                        <Button size="sm" variant="outline" className="h-7 text-xs gap-1" onClick={() => navigate(`/supervisor/screening/${screeningId}/qbot/${q.id}/response`)}>
+                          <Eye className="h-3 w-3" /> View QBot Details
+                        </Button>
                         {isCompleted && !q.satisfactory && !q.report && (
-                          <Button
-                            size="sm"
-                            className="gap-1.5 text-xs gradient-primary"
-                            onClick={() => handleEvaluateQbot(q.id)}
-                            disabled={evaluateQbot.isPending}
-                          >
+                          <Button size="sm" className="gap-1.5 text-xs gradient-primary" onClick={() => handleEvaluateQbot(q.id)} disabled={evaluateQbot.isPending}>
                             {evaluateQbot.isPending ? <Loader2 className="h-3 w-3 animate-spin" /> : <ClipboardCheck className="h-3 w-3" />}
                             Evaluate Interview
                           </Button>
                         )}
-
-                        {/* Delete QBot button */}
-                        <Button
-                          size="sm"
-                          variant="destructive"
-                          className="gap-1.5 text-xs"
-                          onClick={() => handleDeleteQbot(q.id)}
-                          disabled={deleteQbot.isPending}
-                        >
+                        <Button size="sm" variant="destructive" className="gap-1.5 text-xs" onClick={() => handleDeleteQbot(q.id)} disabled={deleteQbot.isPending}>
                           {deleteQbot.isPending ? <Loader2 className="h-3 w-3 animate-spin" /> : <Trash2 className="h-3 w-3" />}
                           Delete
                         </Button>
                       </div>
 
-                      {/* Not enough questions warning */}
-                      {isNotStartedOrPending && !hasEnoughQuestions && questionCount > 0 && (
-                        <p className="text-xs text-amber-400">Need {5 - questionCount} more question(s) before marking as ready.</p>
-                      )}
-
-                      {/* AI Evaluation Report */}
                       {q.report && (
                         <div className="text-xs p-3 rounded bg-muted/20 border-l-2 border-primary/30">
                           <p className="font-medium text-muted-foreground mb-1">AI Evaluation</p>
@@ -899,31 +865,20 @@ function ScreeningDetailView({ screeningId }: { screeningId: string }) {
                         </div>
                       )}
 
-                      {/* Questionnaires list */}
+                      {/* Opening question preview */}
                       {q.questionnaires && q.questionnaires.length > 0 && (
                         <div className="space-y-2">
-                          <p className="text-xs font-medium text-muted-foreground">Questions & Responses</p>
-                          {q.questionnaires.map((qn, i) => (
-                            <div key={qn.id} className="p-3 rounded-lg bg-muted/20 space-y-2">
+                          <p className="text-xs font-medium text-muted-foreground">Opening Question</p>
+                          {q.questionnaires.slice(0, 1).map((qn) => (
+                            <div key={qn.id} className="p-3 rounded-lg bg-muted/20 flex items-start justify-between gap-2">
                               <div className="flex items-start gap-2">
-                                <span className="text-[10px] font-bold text-primary bg-primary/10 px-1.5 py-0.5 rounded shrink-0">Q{i + 1}</span>
+                                <span className="text-[10px] font-bold text-primary bg-primary/10 px-1.5 py-0.5 rounded shrink-0">Q1</span>
                                 <p className="text-xs font-medium">{qn.question}</p>
                               </div>
-                              {qn.answers ? (
-                                <div className="ml-6 space-y-1.5">
-                                  <div className="p-2 rounded border border-border/50 bg-muted/10">
-                                    <p className="text-[10px] uppercase tracking-wider text-muted-foreground mb-0.5">Mentor's Answer</p>
-                                    <p className="text-xs whitespace-pre-wrap">{qn.answers.answer_text}</p>
-                                  </div>
-                                  {qn.answers.summary && (
-                                    <div className="p-2 rounded border border-primary/20 bg-primary/5">
-                                      <p className="text-[10px] uppercase tracking-wider text-muted-foreground mb-0.5">AI Summary</p>
-                                      <p className="text-xs italic">{qn.answers.summary}</p>
-                                    </div>
-                                  )}
-                                </div>
-                              ) : (
-                                <p className="ml-6 text-[10px] text-muted-foreground italic">Awaiting mentor response...</p>
+                              {isNotStartedOrPending && (
+                                <Button size="sm" variant="ghost" className="h-6 w-6 p-0 text-destructive shrink-0" onClick={() => handleDeleteQuestionnaire(qn.id)} disabled={deleteQbotQuestion.isPending}>
+                                  <Trash2 className="h-3 w-3" />
+                                </Button>
                               )}
                             </div>
                           ))}
