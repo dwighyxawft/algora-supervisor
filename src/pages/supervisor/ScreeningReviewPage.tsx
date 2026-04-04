@@ -276,12 +276,24 @@ function ScreeningDetailView({ screeningId }: { screeningId: string }) {
 
   const handleGenerateQuestion = async (qbotId: string) => {
     if (!screening) return;
+    const mentorUuid = screening.mentor_id || screening.mentor?.id;
+    if (!mentorUuid) {
+      toast({ title: 'Error', description: 'Mentor ID not found on screening', variant: 'destructive' });
+      return;
+    }
     try {
       await createQbotQuestion.mutateAsync({
         qbot_id: qbotId,
-        mentor_id: screening.mentor_id,
+        mentor_id: mentorUuid,
         question: 'Generate the next interview question for this mentor.',
       });
+      refetch();
+    } catch {}
+  };
+
+  const handleDeleteQbot = async (qbotId: string) => {
+    try {
+      await deleteQbot.mutateAsync(qbotId);
       refetch();
     } catch {}
   };
