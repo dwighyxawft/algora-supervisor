@@ -846,6 +846,18 @@ function ScreeningDetailView({ screeningId }: { screeningId: string }) {
                             Evaluate Interview
                           </Button>
                         )}
+
+                        {/* Delete QBot button */}
+                        <Button
+                          size="sm"
+                          variant="destructive"
+                          className="gap-1.5 text-xs"
+                          onClick={() => handleDeleteQbot(q.id)}
+                          disabled={deleteQbot.isPending}
+                        >
+                          {deleteQbot.isPending ? <Loader2 className="h-3 w-3 animate-spin" /> : <Trash2 className="h-3 w-3" />}
+                          Delete
+                        </Button>
                       </div>
 
                       {/* Not enough questions warning */}
