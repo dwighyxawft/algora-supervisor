@@ -513,6 +513,27 @@ export function useCreateQbotQuestionnaire() {
   });
 }
 
+export function useCreateQbotQuestionnaireManual() {
+  const qc = useQueryClient();
+  const { toast } = useToast();
+  return useMutation({
+    mutationFn: (data: { qbot_id: string; mentor_id: string; question: string }) =>
+      qbotService.createQuestionnaireManual(data),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['screenings'] }); qc.invalidateQueries({ queryKey: ['qbots'] }); qc.invalidateQueries({ queryKey: ['qbot'] }); toast({ title: 'Question created' }); },
+    onError: (e: Error) => toast({ title: 'Error', description: e.message, variant: 'destructive' }),
+  });
+}
+
+export function useDeleteQbotQuestionnaire() {
+  const qc = useQueryClient();
+  const { toast } = useToast();
+  return useMutation({
+    mutationFn: (id: string) => qbotService.deleteQuestionnaire(id),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['screenings'] }); qc.invalidateQueries({ queryKey: ['qbots'] }); qc.invalidateQueries({ queryKey: ['qbot'] }); toast({ title: 'Question deleted' }); },
+    onError: (e: Error) => toast({ title: 'Delete failed', description: e.message, variant: 'destructive' }),
+  });
+}
+
 export function useEvaluateQbot() {
   const qc = useQueryClient();
   const { toast } = useToast();
