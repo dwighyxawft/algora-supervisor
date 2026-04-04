@@ -4,7 +4,7 @@ import {
   useApproveQbotRetry, useRejectQbotRetry, useMentorWorkSamples, useCreateQbot,
   useStartQbotInterview, useGenerateQbotQuestions, useCreateCodeInterview, useUpdateScreening,
   useUpdateWorkSample, useDeleteScreening, useUpdateQbotStatus, useCreateQbotQuestionnaire,
-  useEvaluateQbot,
+  useEvaluateQbot, useDeleteQbot,
 } from '@/hooks/use-api';
 import { useAuth } from '@/contexts/AuthContext';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -221,6 +221,7 @@ function ScreeningDetailView({ screeningId }: { screeningId: string }) {
   const updateQbotStatus = useUpdateQbotStatus();
   const createQbotQuestion = useCreateQbotQuestionnaire();
   const evaluateQbot = useEvaluateQbot();
+  const deleteQbot = useDeleteQbot();
 
   const mentorId = screening?.mentor_id || '';
   const { data: workSamples } = useMentorWorkSamples(mentorId);
@@ -275,12 +276,24 @@ function ScreeningDetailView({ screeningId }: { screeningId: string }) {
 
   const handleGenerateQuestion = async (qbotId: string) => {
     if (!screening) return;
+    const mentorUuid = screening.mentor_id || screening.mentor?.id;
+    if (!mentorUuid) {
+      toast({ title: 'Error', description: 'Mentor ID not found on screening', variant: 'destructive' });
+      return;
+    }
     try {
       await createQbotQuestion.mutateAsync({
         qbot_id: qbotId,
-        mentor_id: screening.mentor_id,
+        mentor_id: mentorUuid,
         question: 'Generate the next interview question for this mentor.',
       });
+      refetch();
+    } catch {}
+  };
+
+  const handleDeleteQbot = async (qbotId: string) => {
+    try {
+      await deleteQbot.mutateAsync(qbotId);
       refetch();
     } catch {}
   };
@@ -833,6 +846,18 @@ function ScreeningDetailView({ screeningId }: { screeningId: string }) {
                             Evaluate Interview
                           </Button>
                         )}
+
+                        {/* Delete QBot button */}
+                        <Button
+                          size="sm"
+                          variant="destructive"
+                          className="gap-1.5 text-xs"
+                          onClick={() => handleDeleteQbot(q.id)}
+                          disabled={deleteQbot.isPending}
+                        >
+                          {deleteQbot.isPending ? <Loader2 className="h-3 w-3 animate-spin" /> : <Trash2 className="h-3 w-3" />}
+                          Delete
+                        </Button>
                       </div>
 
                       {/* Not enough questions warning */}

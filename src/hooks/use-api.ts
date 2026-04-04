@@ -523,6 +523,16 @@ export function useEvaluateQbot() {
   });
 }
 
+export function useDeleteQbot() {
+  const qc = useQueryClient();
+  const { toast } = useToast();
+  return useMutation({
+    mutationFn: (id: string) => qbotService.remove(id),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['screenings'] }); qc.invalidateQueries({ queryKey: ['qbots'] }); toast({ title: 'QBot deleted' }); },
+    onError: (e: Error) => toast({ title: 'Delete failed', description: e.message, variant: 'destructive' }),
+  });
+}
+
 export function useApproveQbotRetry() {
   const qc = useQueryClient();
   const { toast } = useToast();
