@@ -244,6 +244,7 @@ export const qbotService = {
   updateStatus: (qbotId: string, status: 'pending' | 'ready' | 'in_progress' | 'completed') =>
     apiClient.patch<Qbot>(QbotRoutes.updateStatus(qbotId), { status }),
   evaluate: (id: string) => apiClient.patch<Qbot>(QbotRoutes.evaluate(id)),
+  remove: (id: string) => apiClient.delete<void>(QbotRoutes.remove(id)),
   createQuestionnaire: (data: CreateQuestionnaireDto) =>
     apiClient.post<Questionnaire>(QbotRoutes.createQuestionnaire(), data),
   getQuestionnairesByQbot: (qbotId: string) =>
