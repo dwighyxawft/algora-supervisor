@@ -1,18 +1,32 @@
 import { useParams, useNavigate } from 'react-router-dom';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
 import { qbotService } from '@/lib/api/services';
-import { useUpdateQbotStatus, useDeleteQbotQuestionnaire, useEvaluateQbot } from '@/hooks/use-api';
+import {
+  useCreateQbotQuestionnaire,
+  useCreateQbotQuestionnaireManual,
+  useDeleteQbot,
+  useDeleteQbotQuestionnaire,
+  useEvaluateQbot,
+  useScreening,
+  useUpdateQbotStatus,
+} from '@/hooks/use-api';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
-import { ArrowLeft, CheckCircle, Bot, Loader2, ClipboardCheck, Trash2 } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { ArrowLeft, CheckCircle, Bot, Loader2, ClipboardCheck, Trash2, Plus } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { useState } from 'react';
+import { useToast } from '@/hooks/use-toast';
 
 export default function QbotResponsePage() {
   const { screeningId, qbotId } = useParams();
   const navigate = useNavigate();
-  const qc = useQueryClient();
+  const { toast } = useToast();
+  const [manualQuestion, setManualQuestion] = useState('');
+
+  const { data: screening } = useScreening(screeningId || '');
 
   const { data: qbot, isLoading, refetch } = useQuery({
     queryKey: ['qbot', qbotId],
@@ -20,9 +34,42 @@ export default function QbotResponsePage() {
     enabled: !!qbotId,
   });
 
+  const createQbotQuestion = useCreateQbotQuestionnaire();
+  const createQbotQuestionManual = useCreateQbotQuestionnaireManual();
+  const deleteQbot = useDeleteQbot();
   const updateQbotStatus = useUpdateQbotStatus();
   const deleteQuestion = useDeleteQbotQuestionnaire();
   const evaluateQbot = useEvaluateQbot();
+
+  const mentorId = screening?.mentor_id || screening?.mentor?.id || qbot?.questionnaires?.[0]?.mentor_id;
+
+  const handleGenerateQuestion = async () => {
+    if (!qbotId || !mentorId) {
+      toast({ title: 'Error', description: 'Mentor ID not found for this QBot', variant: 'destructive' });
+      return;
+    }
+
+    await createQbotQuestion.mutateAsync({
+      qbot_id: qbotId,
+      mentor_id: mentorId,
+      question: 'Generate the opening interview question for this mentor.',
+    });
+    refetch();
+  };
+
+  const handleCreateManualQuestion = async () => {
+    if (!qbotId || !mentorId || !manualQuestion.trim()) {
+      return;
+    }
+
+    await createQbotQuestionManual.mutateAsync({
+      qbot_id: qbotId,
+      mentor_id: mentorId,
+      question: manualQuestion.trim(),
+    });
+    setManualQuestion('');
+    refetch();
+  };
 
   const handleMarkReady = async () => {
     if (!qbotId) return;
@@ -41,6 +88,12 @@ export default function QbotResponsePage() {
     refetch();
   };
 
+  const handleDeleteQbot = async () => {
+    if (!qbotId) return;
+    await deleteQbot.mutateAsync(qbotId);
+    navigate(`/supervisor/screening/${screeningId}`);
+  };
+
   if (isLoading || !qbot) {
     return (
       <div className="space-y-6">
@@ -53,6 +106,7 @@ export default function QbotResponsePage() {
   const questionCount = qbot.questionnaires?.length || 0;
   const isPending = qbot.status === 'pending';
   const isCompleted = qbot.status === 'completed';
+  const hasOpeningQuestion = questionCount >= 1;
   const canMarkReady = isPending && questionCount >= 1;
   const needsEvaluation = isCompleted && !qbot.satisfactory && !qbot.report;
 
@@ -97,7 +151,48 @@ export default function QbotResponsePage() {
                   Evaluate Interview
                 </Button>
               )}
+              <Button variant="destructive" className="gap-1.5" onClick={handleDeleteQbot} disabled={deleteQbot.isPending}>
+                {deleteQbot.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
+                Delete QBot
+              </Button>
             </div>
+
+            {isPending && (
+              <div className="space-y-3 rounded-lg border border-border/50 bg-muted/20 p-4">
+                <div>
+                  <p className="text-sm font-medium">Opening Question</p>
+                  <p className="text-xs text-muted-foreground">
+                    {hasOpeningQuestion
+                      ? 'The opening question is ready. You can still delete it while this QBot is pending, then mark the interview as ready.'
+                      : 'Generate the opening question with AI or add it manually before marking this QBot as ready.'}
+                  </p>
+                </div>
+
+                {!hasOpeningQuestion && (
+                  <>
+                    <div className="flex flex-wrap gap-2">
+                      <Button size="sm" variant="outline" className="gap-1.5 text-xs" onClick={handleGenerateQuestion} disabled={createQbotQuestion.isPending}>
+                        {createQbotQuestion.isPending ? <Loader2 className="h-3 w-3 animate-spin" /> : <Bot className="h-3 w-3" />}
+                        Generate Opening Question (AI)
+                      </Button>
+                    </div>
+
+                    <div className="flex flex-col gap-2 sm:flex-row">
+                      <Input
+                        placeholder="Type the opening question manually..."
+                        value={manualQuestion}
+                        onChange={(e) => setManualQuestion(e.target.value)}
+                        className="text-xs"
+                      />
+                      <Button size="sm" className="gap-1.5 text-xs sm:self-start" onClick={handleCreateManualQuestion} disabled={createQbotQuestionManual.isPending || !manualQuestion.trim()}>
+                        {createQbotQuestionManual.isPending ? <Loader2 className="h-3 w-3 animate-spin" /> : <Plus className="h-3 w-3" />}
+                        Add Manually
+                      </Button>
+                    </div>
+                  </>
+                )}
+              </div>
+            )}
 
             {/* AI Evaluation Report */}
             {qbot.report && (
