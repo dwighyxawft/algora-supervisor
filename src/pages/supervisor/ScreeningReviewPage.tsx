@@ -2,10 +2,8 @@ import { useParams, useNavigate } from 'react-router-dom';
 import {
   useScreenings, useScreening, useApproveAssessmentRetry, useApproveCodeAttempt, useRejectCodeAttempt,
   useApproveQbotRetry, useRejectQbotRetry, useMentorWorkSamples, useCreateQbot,
-  useStartQbotInterview, useGenerateQbotQuestions, useCreateCodeInterview, useUpdateScreening,
-  useUpdateWorkSample, useDeleteScreening, useUpdateQbotStatus, useCreateQbotQuestionnaire,
-  useCreateQbotQuestionnaireManual, useDeleteQbotQuestionnaire,
-  useEvaluateQbot, useDeleteQbot,
+  useCreateCodeInterview, useUpdateScreening,
+  useUpdateWorkSample, useDeleteScreening, useDeleteQbot,
 } from '@/hooks/use-api';
 import { useAuth } from '@/contexts/AuthContext';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -213,19 +211,11 @@ function ScreeningDetailView({ screeningId }: { screeningId: string }) {
   const approveQbot = useApproveQbotRetry();
   const rejectQbot = useRejectQbotRetry();
   const createQbot = useCreateQbot();
-  const startQbot = useStartQbotInterview();
-  const generateQbotQ = useGenerateQbotQuestions();
   const createCodeInterview = useCreateCodeInterview();
   const updateScreening = useUpdateScreening();
   const updateWorkSample = useUpdateWorkSample();
   const deleteScreening = useDeleteScreening();
-  const updateQbotStatus = useUpdateQbotStatus();
-  const createQbotQuestion = useCreateQbotQuestionnaire();
-  const createQbotQuestionManual = useCreateQbotQuestionnaireManual();
-  const deleteQbotQuestion = useDeleteQbotQuestionnaire();
-  const evaluateQbot = useEvaluateQbot();
   const deleteQbot = useDeleteQbot();
-  const [manualQuestion, setManualQuestion] = useState('');
 
   const mentorId = screening?.mentor_id || '';
   const { data: workSamples } = useMentorWorkSamples(mentorId);
@@ -278,62 +268,9 @@ function ScreeningDetailView({ screeningId }: { screeningId: string }) {
     } catch {}
   };
 
-  const handleGenerateQuestion = async (qbotId: string) => {
-    if (!screening) return;
-    const mentorUuid = screening.mentor_id || screening.mentor?.id;
-    if (!mentorUuid) {
-      toast({ title: 'Error', description: 'Mentor ID not found on screening', variant: 'destructive' });
-      return;
-    }
-    try {
-      await createQbotQuestion.mutateAsync({
-        qbot_id: qbotId,
-        mentor_id: mentorUuid,
-        question: 'Generate the next interview question for this mentor.',
-      });
-      refetch();
-    } catch {}
-  };
-
-  const handleCreateManualQuestion = async (qbotId: string) => {
-    if (!screening || !manualQuestion.trim()) return;
-    const mentorUuid = screening.mentor_id || screening.mentor?.id;
-    if (!mentorUuid) return;
-    try {
-      await createQbotQuestionManual.mutateAsync({
-        qbot_id: qbotId,
-        mentor_id: mentorUuid,
-        question: manualQuestion.trim(),
-      });
-      setManualQuestion('');
-      refetch();
-    } catch {}
-  };
-
-  const handleDeleteQuestionnaire = async (questionnaireId: string) => {
-    try {
-      await deleteQbotQuestion.mutateAsync(questionnaireId);
-      refetch();
-    } catch {}
-  };
-
   const handleDeleteQbot = async (qbotId: string) => {
     try {
       await deleteQbot.mutateAsync(qbotId);
-      refetch();
-    } catch {}
-  };
-
-  const handleMarkQbotReady = async (qbotId: string) => {
-    try {
-      await updateQbotStatus.mutateAsync({ qbotId, status: 'ready' });
-      refetch();
-    } catch {}
-  };
-
-  const handleEvaluateQbot = async (qbotId: string) => {
-    try {
-      await evaluateQbot.mutateAsync(qbotId);
       refetch();
     } catch {}
   };
@@ -821,23 +758,13 @@ function ScreeningDetailView({ screeningId }: { screeningId: string }) {
                         </Badge>
                       </div>
 
-                      {/* Generate opening question - only when pending and no question yet */}
-                      {isNotStartedOrPending && !hasOpeningQuestion && (
-                        <div className="space-y-3">
-                          <p className="text-xs text-muted-foreground">Generate or write the opening question for this interview:</p>
-                          <div className="flex flex-wrap gap-2">
-                            <Button size="sm" variant="outline" className="gap-1.5 text-xs" onClick={() => handleGenerateQuestion(q.id)} disabled={createQbotQuestion.isPending}>
-                              {createQbotQuestion.isPending ? <Loader2 className="h-3 w-3 animate-spin" /> : <Bot className="h-3 w-3" />}
-                              Generate Opening Question (AI)
-                            </Button>
-                          </div>
-                          <div className="flex gap-2">
-                            <Input placeholder="Or type a manual opening question..." value={manualQuestion} onChange={(e) => setManualQuestion(e.target.value)} className="text-xs h-8" />
-                            <Button size="sm" className="gap-1.5 text-xs shrink-0" onClick={() => handleCreateManualQuestion(q.id)} disabled={createQbotQuestionManual.isPending || !manualQuestion.trim()}>
-                              {createQbotQuestionManual.isPending ? <Loader2 className="h-3 w-3 animate-spin" /> : <Plus className="h-3 w-3" />}
-                              Add Manually
-                            </Button>
-                          </div>
+                      {isNotStartedOrPending && (
+                        <div className="rounded-lg border border-border/50 bg-muted/20 p-3">
+                          <p className="text-xs text-muted-foreground">
+                            {hasOpeningQuestion
+                              ? 'Opening question created. Open QBot Details to review it, manage it, and mark this interview as ready.'
+                              : 'Open QBot Details to generate or manually add the opening question while this QBot is pending.'}
+                          </p>
                         </div>
                       )}
 
@@ -846,12 +773,6 @@ function ScreeningDetailView({ screeningId }: { screeningId: string }) {
                         <Button size="sm" variant="outline" className="h-7 text-xs gap-1" onClick={() => navigate(`/supervisor/screening/${screeningId}/qbot/${q.id}/response`)}>
                           <Eye className="h-3 w-3" /> View QBot Details
                         </Button>
-                        {isCompleted && !q.satisfactory && !q.report && (
-                          <Button size="sm" className="gap-1.5 text-xs gradient-primary" onClick={() => handleEvaluateQbot(q.id)} disabled={evaluateQbot.isPending}>
-                            {evaluateQbot.isPending ? <Loader2 className="h-3 w-3 animate-spin" /> : <ClipboardCheck className="h-3 w-3" />}
-                            Evaluate Interview
-                          </Button>
-                        )}
                         <Button size="sm" variant="destructive" className="gap-1.5 text-xs" onClick={() => handleDeleteQbot(q.id)} disabled={deleteQbot.isPending}>
                           {deleteQbot.isPending ? <Loader2 className="h-3 w-3 animate-spin" /> : <Trash2 className="h-3 w-3" />}
                           Delete
@@ -870,16 +791,11 @@ function ScreeningDetailView({ screeningId }: { screeningId: string }) {
                         <div className="space-y-2">
                           <p className="text-xs font-medium text-muted-foreground">Opening Question</p>
                           {q.questionnaires.slice(0, 1).map((qn) => (
-                            <div key={qn.id} className="p-3 rounded-lg bg-muted/20 flex items-start justify-between gap-2">
+                            <div key={qn.id} className="p-3 rounded-lg bg-muted/20 flex items-start gap-2">
                               <div className="flex items-start gap-2">
                                 <span className="text-[10px] font-bold text-primary bg-primary/10 px-1.5 py-0.5 rounded shrink-0">Q1</span>
                                 <p className="text-xs font-medium">{qn.question}</p>
                               </div>
-                              {isNotStartedOrPending && (
-                                <Button size="sm" variant="ghost" className="h-6 w-6 p-0 text-destructive shrink-0" onClick={() => handleDeleteQuestionnaire(qn.id)} disabled={deleteQbotQuestion.isPending}>
-                                  <Trash2 className="h-3 w-3" />
-                                </Button>
-                              )}
                             </div>
                           ))}
                         </div>

@@ -478,7 +478,7 @@ export function useGenerateQbotQuestions() {
         mentor_id: mentorId,
         question: 'Generate the opening interview question for this mentor.',
       }),
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ['screenings'] }); qc.invalidateQueries({ queryKey: ['qbots'] }); toast({ title: 'QBot question generated' }); },
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['screenings'] }); qc.invalidateQueries({ queryKey: ['qbots'] }); qc.invalidateQueries({ queryKey: ['qbot'] }); toast({ title: 'QBot question generated' }); },
     onError: (e: Error) => toast({ title: 'Error', description: e.message, variant: 'destructive' }),
   });
 }
@@ -497,7 +497,7 @@ export function useUpdateQbotStatus() {
   return useMutation({
     mutationFn: ({ qbotId, status }: { qbotId: string; status: 'pending' | 'ready' | 'in_progress' | 'completed' }) =>
       qbotService.updateStatus(qbotId, status),
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ['screenings'] }); qc.invalidateQueries({ queryKey: ['qbots'] }); toast({ title: 'QBot status updated' }); },
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['screenings'] }); qc.invalidateQueries({ queryKey: ['qbots'] }); qc.invalidateQueries({ queryKey: ['qbot'] }); toast({ title: 'QBot status updated' }); },
     onError: (e: Error) => toast({ title: 'Error', description: e.message, variant: 'destructive' }),
   });
 }
@@ -508,7 +508,7 @@ export function useCreateQbotQuestionnaire() {
   return useMutation({
     mutationFn: (data: { qbot_id: string; mentor_id: string; question: string }) =>
       qbotService.createQuestionnaire(data),
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ['screenings'] }); qc.invalidateQueries({ queryKey: ['qbots'] }); toast({ title: 'Question generated' }); },
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['screenings'] }); qc.invalidateQueries({ queryKey: ['qbots'] }); qc.invalidateQueries({ queryKey: ['qbot'] }); toast({ title: 'Question generated' }); },
     onError: (e: Error) => toast({ title: 'Error', description: e.message, variant: 'destructive' }),
   });
 }
@@ -539,7 +539,7 @@ export function useEvaluateQbot() {
   const { toast } = useToast();
   return useMutation({
     mutationFn: (id: string) => qbotService.evaluate(id),
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ['screenings'] }); qc.invalidateQueries({ queryKey: ['qbots'] }); toast({ title: 'QBot evaluated successfully' }); },
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['screenings'] }); qc.invalidateQueries({ queryKey: ['qbots'] }); qc.invalidateQueries({ queryKey: ['qbot'] }); toast({ title: 'QBot evaluated successfully' }); },
     onError: (e: Error) => toast({ title: 'Evaluation failed', description: e.message, variant: 'destructive' }),
   });
 }
@@ -549,7 +549,7 @@ export function useDeleteQbot() {
   const { toast } = useToast();
   return useMutation({
     mutationFn: (id: string) => qbotService.remove(id),
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ['screenings'] }); qc.invalidateQueries({ queryKey: ['qbots'] }); toast({ title: 'QBot deleted' }); },
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['screenings'] }); qc.invalidateQueries({ queryKey: ['qbots'] }); qc.invalidateQueries({ queryKey: ['qbot'] }); toast({ title: 'QBot deleted' }); },
     onError: (e: Error) => toast({ title: 'Delete failed', description: e.message, variant: 'destructive' }),
   });
 }
