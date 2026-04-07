@@ -889,6 +889,17 @@ function ScreeningDetailView({ screeningId }: { screeningId: string }) {
         })()}
 
         {/* ====== PHASE 4 — CODE INTERVIEW ====== */}
+        {(() => {
+          const ciCount = screening.codeInterviews?.length || 0;
+          const approvedCIRetries = screening.codeInterviewAttempts?.filter(a => a.status === 'APPROVED').length || 0;
+          const latestCI = screening.codeInterviews?.[screening.codeInterviews.length - 1];
+          const latestCIFailed = latestCI && latestCI.status === 'COMPLETED' && !latestCI.passed;
+          const canCreateCI = canAccessPhase(4) && !screening.codeInterviewPassed && screening.status !== 'COMPLETED' && screening.status !== 'FAILED' && (
+            ciCount === 0 ||
+            (latestCIFailed && approvedCIRetries >= ciCount && ciCount < 3)
+          );
+
+          return (
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}>
           <Card className={`glass-card ${!canAccessPhase(4) ? 'opacity-50' : ''}`}>
             <CardHeader>
@@ -899,12 +910,12 @@ function ScreeningDetailView({ screeningId }: { screeningId: string }) {
                   </div>
                   <div>
                     <CardTitle className="text-sm">Phase 4 — Live Code Interview</CardTitle>
-                    <CardDescription>Schedule and conduct live code interview. Max 2 retries.</CardDescription>
+                    <CardDescription>Schedule and conduct live code interview. Max 3 total attempts (1 initial + 2 retries).</CardDescription>
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
                   <Badge className={stateColors[getPhaseState(4)] || ''}>{getPhaseState(4)}</Badge>
-                  {canAccessPhase(4) && !screening.codeInterviewPassed && screening.status !== 'COMPLETED' && screening.status !== 'FAILED' && !showCreateCI && (
+                  {canCreateCI && !showCreateCI && (
                     <Button size="sm" variant="outline" onClick={() => setShowCreateCI(true)} className="gap-1.5">
                       <Calendar className="h-3.5 w-3.5" /> Schedule Code Interview
                     </Button>
@@ -1016,10 +1027,10 @@ function ScreeningDetailView({ screeningId }: { screeningId: string }) {
                         <p className="text-xs text-muted-foreground">
                           {new Date(a.requestedStart).toLocaleDateString()} — {new Date(a.requestedEnd).toLocaleDateString()}
                         </p>
-                        <Badge variant="outline" className="text-[10px] mt-1">{a.status}</Badge>
+                        <Badge variant="outline" className={`text-[10px] mt-1 ${a.status === 'APPROVED' ? 'text-green-400 border-green-500/20' : a.status === 'REJECTED' ? 'text-destructive border-destructive/20' : ''}`}>{a.status}</Badge>
                         {a.reviewerFeedback && <p className="text-[10px] text-muted-foreground mt-0.5">{a.reviewerFeedback}</p>}
                       </div>
-                      {a.status === 'PENDING' && screening.codeInterviewRetries < 2 && (
+                      {a.status === 'PENDING' && ciCount < 3 && (
                         <div className="flex gap-2">
                           <Button size="sm" variant="outline" onClick={() => approveCode.mutate(a.id)} disabled={approveCode.isPending}>
                             {approveCode.isPending ? <Loader2 className="h-3 w-3 animate-spin" /> : 'Approve'}
@@ -1029,21 +1040,30 @@ function ScreeningDetailView({ screeningId }: { screeningId: string }) {
                           </Button>
                         </div>
                       )}
-                      {a.status === 'PENDING' && screening.codeInterviewRetries >= 2 && (
-                        <span className="text-[10px] text-destructive">Max retries reached</span>
+                      {a.status === 'PENDING' && ciCount >= 3 && (
+                        <span className="text-[10px] text-destructive">Max attempts reached (3/3)</span>
                       )}
                     </div>
                   ))}
                 </div>
               )}
 
+              {/* Waiting for retry hint */}
+              {latestCIFailed && !canCreateCI && ciCount < 3 && (
+                <div className="p-3 rounded-lg bg-amber-500/5 border border-amber-500/20">
+                  <p className="text-xs text-amber-400">⏳ Latest code interview failed. Waiting for an approved retry request before a new session can be scheduled.</p>
+                </div>
+              )}
+
               <div className="flex items-center gap-2 pt-2">
                 <Clock className="h-3.5 w-3.5 text-muted-foreground" />
-                <span className="text-xs text-muted-foreground">Code Interview retries used: {screening.codeInterviewRetries}/2</span>
+                <span className="text-xs text-muted-foreground">Attempts: {ciCount}/3 · Retries used: {screening.codeInterviewRetries}/2</span>
               </div>
             </CardContent>
           </Card>
         </motion.div>
+          );
+        })()}
 
         {/* ====== FINAL ACTION — APPROVE/REJECT ====== */}
         {allPhasesComplete && screening.status !== 'COMPLETED' && screening.status !== 'FAILED' && !mentor?.isCertified && (
