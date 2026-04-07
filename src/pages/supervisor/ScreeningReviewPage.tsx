@@ -732,6 +732,17 @@ function ScreeningDetailView({ screeningId }: { screeningId: string }) {
         </motion.div>
 
         {/* ====== PHASE 3 — QBOT ====== */}
+        {(() => {
+          const qbotCount = screening.qbots?.length || 0;
+          const approvedQbotRetries = screening.qbotRetries?.filter((r: any) => r.status === 'APPROVED').length || 0;
+          const latestQbot = screening.qbots?.[screening.qbots.length - 1];
+          const latestQbotFailed = latestQbot && latestQbot.status === 'completed' && !latestQbot.satisfactory;
+          const canCreateQbotSession = canAccessPhase(3) && !screening.qBotPassed && screening.status !== 'FAILED' && (
+            qbotCount === 0 ||
+            (latestQbotFailed && approvedQbotRetries >= qbotCount && qbotCount < 3)
+          );
+
+          return (
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.25 }}>
           <Card className={`glass-card ${!canAccessPhase(3) ? 'opacity-50' : ''}`}>
             <CardHeader>
@@ -742,12 +753,12 @@ function ScreeningDetailView({ screeningId }: { screeningId: string }) {
                   </div>
                   <div>
                     <CardTitle className="text-sm">Phase 3 — QBot AI Coding Interview</CardTitle>
-                    <CardDescription>AI-powered coding interview. Generate 1 opening question, then mark as ready.</CardDescription>
+                    <CardDescription>AI-powered coding interview. Max 3 total attempts (1 initial + 2 retries).</CardDescription>
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
                   <Badge className={stateColors[getPhaseState(3)] || ''}>{getPhaseState(3)}</Badge>
-                  {canAccessPhase(3) && !screening.qBotPassed && screening.status !== 'FAILED' && (
+                  {canCreateQbotSession && (
                     <Button size="sm" className="gap-1.5 gradient-primary" onClick={handleCreateQbot} disabled={createQbot.isPending}>
                       {createQbot.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Plus className="h-3.5 w-3.5" />}
                       Create QBot Interview
@@ -830,7 +841,7 @@ function ScreeningDetailView({ screeningId }: { screeningId: string }) {
                 <p className="text-sm text-muted-foreground text-center py-4">No QBot interviews yet.</p>
               )}
 
-              {/* Retry info */}
+              {/* Retry requests */}
               {screening.qbotRetries && screening.qbotRetries.length > 0 && (
                 <div className="space-y-2 pt-3 border-t border-border/50">
                   <p className="text-xs text-muted-foreground font-medium flex items-center gap-1.5"><RefreshCw className="h-3 w-3" /> QBot Retry Requests</p>
@@ -840,9 +851,9 @@ function ScreeningDetailView({ screeningId }: { screeningId: string }) {
                         <p className="text-xs text-muted-foreground">
                           {new Date(r.requestedStart).toLocaleDateString()} — {new Date(r.requestedEnd).toLocaleDateString()}
                         </p>
-                        <Badge variant="outline" className="text-[10px] mt-1">{r.status}</Badge>
+                        <Badge variant="outline" className={`text-[10px] mt-1 ${r.status === 'APPROVED' ? 'text-green-400 border-green-500/20' : r.status === 'REJECTED' ? 'text-destructive border-destructive/20' : ''}`}>{r.status}</Badge>
                       </div>
-                      {r.status === 'PENDING' && (
+                      {r.status === 'PENDING' && qbotCount < 3 && (
                         <div className="flex gap-2">
                           <Button size="sm" variant="outline" onClick={() => approveQbot.mutate(r.id)} disabled={approveQbot.isPending}>
                             Approve
@@ -852,18 +863,30 @@ function ScreeningDetailView({ screeningId }: { screeningId: string }) {
                           </Button>
                         </div>
                       )}
+                      {r.status === 'PENDING' && qbotCount >= 3 && (
+                        <span className="text-[10px] text-destructive">Max attempts reached (3/3)</span>
+                      )}
                     </div>
                   ))}
                 </div>
               )}
 
+              {/* Waiting for retry hint */}
+              {latestQbotFailed && !canCreateQbotSession && qbotCount < 3 && (
+                <div className="p-3 rounded-lg bg-amber-500/5 border border-amber-500/20">
+                  <p className="text-xs text-amber-400">⏳ Latest QBot interview failed. Waiting for an approved retry request before a new session can be created.</p>
+                </div>
+              )}
+
               <div className="flex items-center gap-2 pt-2">
                 <Clock className="h-3.5 w-3.5 text-muted-foreground" />
-                <span className="text-xs text-muted-foreground">Retries used: {screening.qBotRetries}/2</span>
+                <span className="text-xs text-muted-foreground">Attempts: {qbotCount}/3 · Retries used: {screening.qBotRetries}/2</span>
               </div>
             </CardContent>
           </Card>
         </motion.div>
+          );
+        })()}
 
         {/* ====== PHASE 4 — CODE INTERVIEW ====== */}
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}>
