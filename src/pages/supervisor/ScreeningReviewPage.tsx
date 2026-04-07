@@ -534,6 +534,18 @@ function ScreeningDetailView({ screeningId }: { screeningId: string }) {
       <div className="space-y-6">
 
         {/* ====== PHASE 1 — ASSESSMENT ====== */}
+        {(() => {
+          const assessmentCount = screening.assessments?.length || 0;
+          const approvedAssessmentRetries = screening.retries?.filter(r => r.status === 'APPROVED').length || 0;
+          const latestAssessment = screening.assessments?.[screening.assessments.length - 1];
+          const latestFailed = latestAssessment && latestAssessment.status === 'COMPLETED' && !latestAssessment.passed;
+          // Can create if: no assessments yet (1st attempt), OR latest failed AND approved retries >= assessments count AND total < 3
+          const canCreateAssessment = !screening.assessmentPassed && screening.status !== 'FAILED' && (
+            assessmentCount === 0 ||
+            (latestFailed && approvedAssessmentRetries >= assessmentCount && assessmentCount < 3)
+          );
+
+          return (
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }}>
           <Card className="glass-card">
             <CardHeader>
@@ -544,12 +556,12 @@ function ScreeningDetailView({ screeningId }: { screeningId: string }) {
                   </div>
                   <div>
                     <CardTitle className="text-sm">Phase 1 — Assessment</CardTitle>
-                    <CardDescription>Theory or objective assessment. Max 2 retries (3 total attempts).</CardDescription>
+                    <CardDescription>Theory or objective assessment. Max 3 total attempts (1 initial + 2 retries).</CardDescription>
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
                   <Badge className={stateColors[getPhaseState(1)] || ''}>{getPhaseState(1)}</Badge>
-                  {!screening.assessmentPassed && screening.status !== 'FAILED' && (
+                  {canCreateAssessment && (
                     <Button size="sm" className="gap-1.5 gradient-primary" onClick={() => navigate(`/supervisor/screening/${screeningId}/assessment/create`)}>
                       <Plus className="h-3.5 w-3.5" /> Create Assessment
                     </Button>
@@ -597,28 +609,39 @@ function ScreeningDetailView({ screeningId }: { screeningId: string }) {
                         <p className="text-xs text-muted-foreground">
                           {new Date(r.requestedStart).toLocaleDateString()} — {new Date(r.requestedEnd).toLocaleDateString()}
                         </p>
-                        <Badge variant="outline" className="text-[10px] mt-1">{r.status}</Badge>
+                        <Badge variant="outline" className={`text-[10px] mt-1 ${r.status === 'APPROVED' ? 'text-green-400 border-green-500/20' : r.status === 'REJECTED' ? 'text-destructive border-destructive/20' : ''}`}>{r.status}</Badge>
                       </div>
-                      {r.status === 'PENDING' && screening.assessmentRetries < 2 && (
-                        <Button size="sm" variant="outline" onClick={() => approveRetry.mutate(r.id)} disabled={approveRetry.isPending}>
-                          {approveRetry.isPending ? <Loader2 className="h-3 w-3 animate-spin" /> : 'Approve Retry'}
-                        </Button>
+                      {r.status === 'PENDING' && assessmentCount < 3 && (
+                        <div className="flex gap-2">
+                          <Button size="sm" variant="outline" onClick={() => approveRetry.mutate(r.id)} disabled={approveRetry.isPending}>
+                            {approveRetry.isPending ? <Loader2 className="h-3 w-3 animate-spin" /> : 'Approve'}
+                          </Button>
+                        </div>
                       )}
-                      {r.status === 'PENDING' && screening.assessmentRetries >= 2 && (
-                        <span className="text-[10px] text-destructive">Max retries reached</span>
+                      {r.status === 'PENDING' && assessmentCount >= 3 && (
+                        <span className="text-[10px] text-destructive">Max attempts reached (3/3)</span>
                       )}
                     </div>
                   ))}
                 </div>
               )}
 
+              {/* Waiting for retry hint */}
+              {latestFailed && !canCreateAssessment && assessmentCount < 3 && (
+                <div className="p-3 rounded-lg bg-amber-500/5 border border-amber-500/20">
+                  <p className="text-xs text-amber-400">⏳ Mentor's latest assessment failed. Waiting for an approved retry request before a new assessment can be created.</p>
+                </div>
+              )}
+
               <div className="flex items-center gap-2 pt-2">
                 <Clock className="h-3.5 w-3.5 text-muted-foreground" />
-                <span className="text-xs text-muted-foreground">Attempts used: {screening.assessmentRetries}/2 retries</span>
+                <span className="text-xs text-muted-foreground">Attempts: {assessmentCount}/3 · Retries used: {screening.assessmentRetries}/2</span>
               </div>
             </CardContent>
           </Card>
         </motion.div>
+          );
+        })()}
 
         {/* ====== PHASE 2 — WORK SAMPLES ====== */}
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}>
