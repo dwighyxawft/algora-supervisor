@@ -2,8 +2,9 @@ import { useParams, useNavigate } from 'react-router-dom';
 import {
   useScreenings, useScreening, useApproveAssessmentRetry, useApproveCodeAttempt, useRejectCodeAttempt,
   useApproveQbotRetry, useRejectQbotRetry, useMentorWorkSamples, useCreateQbot,
-  useCreateCodeInterview, useUpdateScreening,
-  useUpdateWorkSample, useDeleteScreening, useDeleteQbot,
+  useCreateCodeInterview, useUpdateCodeInterview, useDeleteCodeInterview,
+  useCreateCodeInterviewTask, useUpdateCodeInterviewTask, useDeleteCodeInterviewTask,
+  useUpdateScreening, useUpdateWorkSample, useDeleteScreening, useDeleteQbot,
 } from '@/hooks/use-api';
 import { useAuth } from '@/contexts/AuthContext';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -16,7 +17,7 @@ import { DataTable } from '@/components/supervisor/DataTable';
 import {
   ArrowLeft, CheckCircle, XCircle, Code, FileText, Bot, Shield, Loader2,
   RefreshCw, Clock, Plus, ExternalLink, Image as ImageIcon, Calendar, Video,
-  Eye, ClipboardCheck, Trash2
+  Eye, ClipboardCheck, Trash2, Pencil, X
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { reviewService, workSampleService, mentorService } from '@/lib/api/services';
