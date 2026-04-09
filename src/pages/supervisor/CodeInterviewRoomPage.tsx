@@ -53,17 +53,24 @@ export default function CodeInterviewRoomPage() {
       .catch(() => setLoading(false));
   }, [interviewId]);
 
-  // Countdown
+  // Countdown & time-gating (join only between start and end)
   useEffect(() => {
     if (!interview?.startDateTime) { setCanJoin(true); return; }
     const tick = () => {
       const start = new Date(interview.startDateTime!);
+      const end = interview.endDateTime ? new Date(interview.endDateTime) : null;
+      const now = new Date();
+
+      // If end time has passed, cannot join
+      if (end && isPast(end)) { setCanJoin(false); setCountdown('Interview has ended'); return; }
+
       if (isPast(start)) { setCanJoin(true); setCountdown(''); return; }
-      const diff = differenceInSeconds(start, new Date());
+      const diff = differenceInSeconds(start, now);
       const h = Math.floor(diff / 3600);
       const m = Math.floor((diff % 3600) / 60);
       const s = diff % 60;
       setCountdown(`${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`);
+      setCanJoin(false);
     };
     tick();
     const iv = setInterval(tick, 1000);
