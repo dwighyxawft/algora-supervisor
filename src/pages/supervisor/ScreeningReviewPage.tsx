@@ -213,10 +213,31 @@ function ScreeningDetailView({ screeningId }: { screeningId: string }) {
   const rejectQbot = useRejectQbotRetry();
   const createQbot = useCreateQbot();
   const createCodeInterview = useCreateCodeInterview();
+  const updateCodeInterview = useUpdateCodeInterview();
+  const deleteCodeInterviewMut = useDeleteCodeInterview();
+  const createTask = useCreateCodeInterviewTask();
+  const updateTask = useUpdateCodeInterviewTask();
+  const deleteTask = useDeleteCodeInterviewTask();
   const updateScreening = useUpdateScreening();
   const updateWorkSample = useUpdateWorkSample();
   const deleteScreening = useDeleteScreening();
   const deleteQbot = useDeleteQbot();
+
+  // Task management state
+  const [showAddTask, setShowAddTask] = useState<string | null>(null); // code interview ID
+  const [taskRequirements, setTaskRequirements] = useState('');
+  const [taskPoints, setTaskPoints] = useState('10');
+  const [editingTask, setEditingTask] = useState<string | null>(null);
+  const [editTaskRequirements, setEditTaskRequirements] = useState('');
+  const [editTaskPoints, setEditTaskPoints] = useState('');
+  // Edit code interview state
+  const [editingCI, setEditingCI] = useState<string | null>(null);
+  const [editCITitle, setEditCITitle] = useState('');
+  const [editCIDescription, setEditCIDescription] = useState('');
+  const [editCIPassCutoff, setEditCIPassCutoff] = useState('');
+  const [editCIDuration, setEditCIDuration] = useState('');
+  const [editCIStartDateTime, setEditCIStartDateTime] = useState('');
+  const [editCIEndDateTime, setEditCIEndDateTime] = useState('');
 
   const mentorId = screening?.mentor_id || '';
   const { data: workSamples } = useMentorWorkSamples(mentorId);
