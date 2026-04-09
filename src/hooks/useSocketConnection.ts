@@ -52,6 +52,24 @@ export function useSocketConnection({ userId, userType, roomId, autoConnect = fa
       setState(s => ({ ...s, isConnected: true, error: null, connectionStatus: 'Authenticating...' }));
       // Step 1: Authenticate
       socket.emit('authenticate', { userId, userType });
+      // The backend emits 'authenticated' to the socket ID, but since socket.to(socketId)
+      // excludes the sender, we handle it with a timeout fallback
+      setTimeout(() => {
+        if (socketRef.current?.connected) {
+          setState(s => {
+            if (!s.isAuthenticated) {
+              // Proceed to join room even if authenticated event wasn't received
+              socketRef.current?.emit('join-code-interview-room', {
+                userId,
+                userType: 'SUPERVISOR',
+                roomId,
+              });
+              return { ...s, isAuthenticated: true, connectionStatus: 'Connected' };
+            }
+            return s;
+          });
+        }
+      }, 1000);
     });
 
     socket.on('authenticated', () => {

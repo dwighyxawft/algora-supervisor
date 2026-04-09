@@ -53,17 +53,24 @@ export default function CodeInterviewRoomPage() {
       .catch(() => setLoading(false));
   }, [interviewId]);
 
-  // Countdown
+  // Countdown & time-gating (join only between start and end)
   useEffect(() => {
     if (!interview?.startDateTime) { setCanJoin(true); return; }
     const tick = () => {
       const start = new Date(interview.startDateTime!);
+      const end = interview.endDateTime ? new Date(interview.endDateTime) : null;
+      const now = new Date();
+
+      // If end time has passed, cannot join
+      if (end && isPast(end)) { setCanJoin(false); setCountdown('Interview has ended'); return; }
+
       if (isPast(start)) { setCanJoin(true); setCountdown(''); return; }
-      const diff = differenceInSeconds(start, new Date());
+      const diff = differenceInSeconds(start, now);
       const h = Math.floor(diff / 3600);
       const m = Math.floor((diff % 3600) / 60);
       const s = diff % 60;
       setCountdown(`${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`);
+      setCanJoin(false);
     };
     tick();
     const iv = setInterval(tick, 1000);
@@ -243,13 +250,19 @@ export default function CodeInterviewRoomPage() {
             <div className="mt-auto pt-4">
               {!joined ? (
                 <>
-                  {!canJoin && countdown && (
+                  {!canJoin && countdown && countdown !== 'Interview has ended' && (
                     <div className="flex items-center gap-2 p-3 rounded-lg bg-muted/50 mb-3">
                       <Clock className="h-4 w-4 text-yellow-400" />
                       <div>
                         <p className="text-[10px] text-muted-foreground uppercase">Starts in</p>
                         <p className="text-lg font-mono font-bold text-foreground">{countdown}</p>
                       </div>
+                    </div>
+                  )}
+                  {countdown === 'Interview has ended' && (
+                    <div className="flex items-center gap-2 p-3 rounded-lg bg-destructive/10 mb-3">
+                      <AlertCircle className="h-4 w-4 text-destructive" />
+                      <p className="text-sm text-destructive font-medium">Interview has ended</p>
                     </div>
                   )}
                   <Button className="w-full" disabled={!canJoin} onClick={handleJoinRoom}>

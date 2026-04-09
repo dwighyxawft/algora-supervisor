@@ -2,8 +2,9 @@ import { useParams, useNavigate } from 'react-router-dom';
 import {
   useScreenings, useScreening, useApproveAssessmentRetry, useApproveCodeAttempt, useRejectCodeAttempt,
   useApproveQbotRetry, useRejectQbotRetry, useMentorWorkSamples, useCreateQbot,
-  useCreateCodeInterview, useUpdateScreening,
-  useUpdateWorkSample, useDeleteScreening, useDeleteQbot,
+  useCreateCodeInterview, useUpdateCodeInterview, useDeleteCodeInterview,
+  useCreateCodeInterviewTask, useUpdateCodeInterviewTask, useDeleteCodeInterviewTask,
+  useUpdateScreening, useUpdateWorkSample, useDeleteScreening, useDeleteQbot,
 } from '@/hooks/use-api';
 import { useAuth } from '@/contexts/AuthContext';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -16,7 +17,7 @@ import { DataTable } from '@/components/supervisor/DataTable';
 import {
   ArrowLeft, CheckCircle, XCircle, Code, FileText, Bot, Shield, Loader2,
   RefreshCw, Clock, Plus, ExternalLink, Image as ImageIcon, Calendar, Video,
-  Eye, ClipboardCheck, Trash2
+  Eye, ClipboardCheck, Trash2, Pencil, X
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { reviewService, workSampleService, mentorService } from '@/lib/api/services';
@@ -212,10 +213,31 @@ function ScreeningDetailView({ screeningId }: { screeningId: string }) {
   const rejectQbot = useRejectQbotRetry();
   const createQbot = useCreateQbot();
   const createCodeInterview = useCreateCodeInterview();
+  const updateCodeInterview = useUpdateCodeInterview();
+  const deleteCodeInterviewMut = useDeleteCodeInterview();
+  const createTask = useCreateCodeInterviewTask();
+  const updateTask = useUpdateCodeInterviewTask();
+  const deleteTask = useDeleteCodeInterviewTask();
   const updateScreening = useUpdateScreening();
   const updateWorkSample = useUpdateWorkSample();
   const deleteScreening = useDeleteScreening();
   const deleteQbot = useDeleteQbot();
+
+  // Task management state
+  const [showAddTask, setShowAddTask] = useState<string | null>(null); // code interview ID
+  const [taskRequirements, setTaskRequirements] = useState('');
+  const [taskPoints, setTaskPoints] = useState('10');
+  const [editingTask, setEditingTask] = useState<string | null>(null);
+  const [editTaskRequirements, setEditTaskRequirements] = useState('');
+  const [editTaskPoints, setEditTaskPoints] = useState('');
+  // Edit code interview state
+  const [editingCI, setEditingCI] = useState<string | null>(null);
+  const [editCITitle, setEditCITitle] = useState('');
+  const [editCIDescription, setEditCIDescription] = useState('');
+  const [editCIPassCutoff, setEditCIPassCutoff] = useState('');
+  const [editCIDuration, setEditCIDuration] = useState('');
+  const [editCIStartDateTime, setEditCIStartDateTime] = useState('');
+  const [editCIEndDateTime, setEditCIEndDateTime] = useState('');
 
   const mentorId = screening?.mentor_id || '';
   const { data: workSamples } = useMentorWorkSamples(mentorId);
@@ -899,6 +921,56 @@ function ScreeningDetailView({ screeningId }: { screeningId: string }) {
             (latestCIFailed && approvedCIRetries >= ciCount && ciCount < 3)
           );
 
+          const handleAddTask = async (ciId: string) => {
+            const reqs = taskRequirements.split('\n').map(r => r.trim()).filter(Boolean);
+            if (reqs.length === 0) return;
+            await createTask.mutateAsync({ code_interview_id: ciId, requirements: reqs, points: parseInt(taskPoints) || 10 });
+            setTaskRequirements(''); setTaskPoints('10'); setShowAddTask(null);
+            refetch();
+          };
+
+          const handleUpdateTask = async (taskId: string) => {
+            const reqs = editTaskRequirements.split('\n').map(r => r.trim()).filter(Boolean);
+            await updateTask.mutateAsync({ id: taskId, data: { requirements: reqs, points: parseInt(editTaskPoints) || 10 } });
+            setEditingTask(null);
+            refetch();
+          };
+
+          const handleDeleteTask = async (taskId: string) => {
+            if (!confirm('Delete this task?')) return;
+            await deleteTask.mutateAsync(taskId);
+            refetch();
+          };
+
+          const handleDeleteCI = async (ciId: string) => {
+            if (!confirm('Delete this code interview?')) return;
+            await deleteCodeInterviewMut.mutateAsync(ciId);
+            refetch();
+          };
+
+          const handleUpdateCI = async (ciId: string) => {
+            const data: any = {};
+            if (editCITitle) data.title = editCITitle;
+            if (editCIDescription) data.description = editCIDescription;
+            if (editCIPassCutoff) data.passCutoff = parseInt(editCIPassCutoff);
+            if (editCIDuration) data.durationMinutes = parseInt(editCIDuration);
+            if (editCIStartDateTime) data.startDateTime = new Date(editCIStartDateTime);
+            if (editCIEndDateTime) data.endDateTime = new Date(editCIEndDateTime);
+            await updateCodeInterview.mutateAsync({ id: ciId, data });
+            setEditingCI(null);
+            refetch();
+          };
+
+          const startEditCI = (ci: any) => {
+            setEditingCI(ci.id);
+            setEditCITitle(ci.title || '');
+            setEditCIDescription(ci.description || '');
+            setEditCIPassCutoff(String(ci.passCutoff || 70));
+            setEditCIDuration(String(ci.durationMinutes || 60));
+            setEditCIStartDateTime(ci.startDateTime ? new Date(ci.startDateTime).toISOString().slice(0, 16) : '');
+            setEditCIEndDateTime(ci.endDateTime ? new Date(ci.endDateTime).toISOString().slice(0, 16) : '');
+          };
+
           return (
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}>
           <Card className={`glass-card ${!canAccessPhase(4) ? 'opacity-50' : ''}`}>
@@ -970,47 +1042,140 @@ function ScreeningDetailView({ screeningId }: { screeningId: string }) {
               {screening.codeInterviews && screening.codeInterviews.length > 0 ? (
                 screening.codeInterviews.map((ci) => (
                   <div key={ci.id} className="p-4 rounded-lg bg-muted/30 space-y-3">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="text-sm font-medium">{ci.title}</p>
-                        <p className="text-xs text-muted-foreground">
-                          {ci.status} · {ci.durationMinutes}min · Cutoff: {ci.passCutoff}%
-                        </p>
-                        {ci.startDateTime && (
-                          <p className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5">
-                            <Calendar className="h-3 w-3" />
-                            Scheduled: {new Date(ci.startDateTime).toLocaleString()}
-                          </p>
-                        )}
+                    {/* Edit mode for code interview */}
+                    {editingCI === ci.id ? (
+                      <div className="space-y-3 p-3 rounded-lg border border-primary/20 bg-primary/5">
+                        <p className="text-sm font-medium">Edit Code Interview</p>
+                        <div className="grid grid-cols-2 gap-3">
+                          <div className="space-y-1"><Label className="text-xs">Title</Label><Input value={editCITitle} onChange={e => setEditCITitle(e.target.value)} className="h-8 text-sm" /></div>
+                          <div className="space-y-1"><Label className="text-xs">Pass Cutoff (%)</Label><Input type="number" value={editCIPassCutoff} onChange={e => setEditCIPassCutoff(e.target.value)} className="h-8 text-sm" /></div>
+                          <div className="space-y-1"><Label className="text-xs">Duration (min)</Label><Input type="number" value={editCIDuration} onChange={e => setEditCIDuration(e.target.value)} className="h-8 text-sm" /></div>
+                        </div>
+                        <div className="grid grid-cols-2 gap-3">
+                          <div className="space-y-1"><Label className="text-xs">Start</Label><Input type="datetime-local" value={editCIStartDateTime} onChange={e => setEditCIStartDateTime(e.target.value)} className="h-8 text-sm" /></div>
+                          <div className="space-y-1"><Label className="text-xs">End</Label><Input type="datetime-local" value={editCIEndDateTime} onChange={e => setEditCIEndDateTime(e.target.value)} className="h-8 text-sm" /></div>
+                        </div>
+                        <div className="space-y-1"><Label className="text-xs">Description</Label><Textarea value={editCIDescription} onChange={e => setEditCIDescription(e.target.value)} rows={2} className="text-sm" /></div>
+                        <div className="flex gap-2 justify-end">
+                          <Button size="sm" variant="ghost" onClick={() => setEditingCI(null)}>Cancel</Button>
+                          <Button size="sm" className="gradient-primary" onClick={() => handleUpdateCI(ci.id)} disabled={updateCodeInterview.isPending}>
+                            {updateCodeInterview.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin mr-1" /> : null} Save
+                          </Button>
+                        </div>
                       </div>
-                      <div className="flex items-center gap-2">
-                        {ci.score != null && <span className="text-sm font-semibold">{ci.score}%</span>}
-                        <Badge className={ci.passed ? 'bg-green-500/10 text-green-400 border-green-500/20' : ci.status === 'COMPLETED' ? 'bg-destructive/10 text-destructive border-destructive/20' : 'bg-primary/10 text-primary border-primary/20'}>
-                          {ci.passed ? 'Passed' : ci.status}
-                        </Badge>
-                        {ci.startDateTime && ci.status !== 'COMPLETED' && (
-                          <Button size="sm" variant="outline" className="h-7 text-xs gap-1" onClick={() => navigate(`/supervisor/code-interview/${ci.id}`)}>
-                            <Video className="h-3 w-3" /> Join Room
+                    ) : (
+                      <>
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <p className="text-sm font-medium">{ci.title}</p>
+                            <p className="text-xs text-muted-foreground">
+                              {ci.status} · {ci.durationMinutes}min · Cutoff: {ci.passCutoff}%
+                            </p>
+                            {ci.startDateTime && (
+                              <p className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5">
+                                <Calendar className="h-3 w-3" />
+                                {new Date(ci.startDateTime).toLocaleString()}
+                                {ci.endDateTime && ` — ${new Date(ci.endDateTime).toLocaleString()}`}
+                              </p>
+                            )}
+                          </div>
+                          <div className="flex items-center gap-2">
+                            {ci.score != null && <span className="text-sm font-semibold">{ci.score}%</span>}
+                            <Badge className={ci.passed ? 'bg-green-500/10 text-green-400 border-green-500/20' : ci.status === 'COMPLETED' ? 'bg-destructive/10 text-destructive border-destructive/20' : 'bg-primary/10 text-primary border-primary/20'}>
+                              {ci.passed ? 'Passed' : ci.status}
+                            </Badge>
+                          </div>
+                        </div>
+                        <div className="flex flex-wrap gap-2">
+                          {ci.status !== 'COMPLETED' && (
+                            <>
+                              <Button size="sm" variant="outline" className="h-7 text-xs gap-1" onClick={() => startEditCI(ci)}>
+                                <Pencil className="h-3 w-3" /> Edit
+                              </Button>
+                              <Button size="sm" variant="destructive" className="h-7 text-xs gap-1" onClick={() => handleDeleteCI(ci.id)} disabled={deleteCodeInterviewMut.isPending}>
+                                <Trash2 className="h-3 w-3" /> Delete
+                              </Button>
+                            </>
+                          )}
+                          {ci.startDateTime && ci.status !== 'COMPLETED' && (
+                            <Button size="sm" variant="outline" className="h-7 text-xs gap-1" onClick={() => navigate(`/supervisor/code-interview/${ci.id}`)}>
+                              <Video className="h-3 w-3" /> Join Room
+                            </Button>
+                          )}
+                          <Button size="sm" variant="outline" className="h-7 text-xs gap-1" onClick={() => navigate(`/supervisor/screening/${screeningId}/code-interview/${ci.id}/submission`)}>
+                            <Eye className="h-3 w-3" /> View Submission
+                          </Button>
+                        </div>
+                      </>
+                    )}
+
+                    {/* Tasks section */}
+                    <div className="space-y-2 pt-2 border-t border-border/30">
+                      <div className="flex items-center justify-between">
+                        <p className="text-xs text-muted-foreground font-medium">Tasks ({ci.tasks?.length || 0})</p>
+                        {ci.status !== 'COMPLETED' && (
+                          <Button size="sm" variant="ghost" className="h-6 text-xs gap-1" onClick={() => { setShowAddTask(showAddTask === ci.id ? null : ci.id); setTaskRequirements(''); setTaskPoints('10'); }}>
+                            {showAddTask === ci.id ? <X className="h-3 w-3" /> : <Plus className="h-3 w-3" />}
+                            {showAddTask === ci.id ? 'Cancel' : 'Add Task'}
                           </Button>
                         )}
-                        <Button size="sm" variant="outline" className="h-7 text-xs gap-1" onClick={() => navigate(`/supervisor/screening/${screeningId}/code-interview/${ci.id}/submission`)}>
-                          <Eye className="h-3 w-3" /> View Submission
-                        </Button>
                       </div>
-                    </div>
-                    {ci.tasks && ci.tasks.length > 0 && (
-                      <div className="space-y-1 pt-2 border-t border-border/30">
-                        <p className="text-xs text-muted-foreground font-medium">Tasks ({ci.tasks.length})</p>
-                        {ci.tasks.map(t => (
-                          <div key={t.id} className="text-xs p-2 rounded bg-muted/20">
-                            <p className="font-medium">Points: {t.points}</p>
-                            <ul className="list-disc list-inside text-muted-foreground">
-                              {t.requirements?.map((r, ri) => <li key={ri}>{r}</li>)}
-                            </ul>
+
+                      {/* Add task form */}
+                      {showAddTask === ci.id && (
+                        <div className="p-3 rounded-lg border border-primary/20 bg-primary/5 space-y-2">
+                          <div className="space-y-1">
+                            <Label className="text-xs">Requirements (one per line)</Label>
+                            <Textarea value={taskRequirements} onChange={e => setTaskRequirements(e.target.value)} rows={3} className="text-sm" placeholder="Build a REST API&#10;Add authentication&#10;Write unit tests" />
                           </div>
-                        ))}
-                      </div>
-                    )}
+                          <div className="space-y-1">
+                            <Label className="text-xs">Points</Label>
+                            <Input type="number" value={taskPoints} onChange={e => setTaskPoints(e.target.value)} className="h-8 text-sm w-24" />
+                          </div>
+                          <Button size="sm" className="gradient-primary" onClick={() => handleAddTask(ci.id)} disabled={createTask.isPending || !taskRequirements.trim()}>
+                            {createTask.isPending ? <Loader2 className="h-3 w-3 animate-spin mr-1" /> : <Plus className="h-3 w-3 mr-1" />} Add Task
+                          </Button>
+                        </div>
+                      )}
+
+                      {/* Existing tasks */}
+                      {ci.tasks && ci.tasks.map(t => (
+                        <div key={t.id} className="text-xs p-2 rounded bg-muted/20 space-y-2">
+                          {editingTask === t.id ? (
+                            <div className="space-y-2">
+                              <Textarea value={editTaskRequirements} onChange={e => setEditTaskRequirements(e.target.value)} rows={3} className="text-sm" />
+                              <Input type="number" value={editTaskPoints} onChange={e => setEditTaskPoints(e.target.value)} className="h-7 text-sm w-24" />
+                              <div className="flex gap-2">
+                                <Button size="sm" variant="ghost" className="h-6 text-xs" onClick={() => setEditingTask(null)}>Cancel</Button>
+                                <Button size="sm" className="h-6 text-xs gradient-primary" onClick={() => handleUpdateTask(t.id)} disabled={updateTask.isPending}>Save</Button>
+                              </div>
+                            </div>
+                          ) : (
+                            <>
+                              <div className="flex items-center justify-between">
+                                <p className="font-medium">Points: {t.points}</p>
+                                {ci.status !== 'COMPLETED' && (
+                                  <div className="flex gap-1">
+                                    <Button size="sm" variant="ghost" className="h-5 w-5 p-0" onClick={() => { setEditingTask(t.id); setEditTaskRequirements(t.requirements?.join('\n') || ''); setEditTaskPoints(String(t.points)); }}>
+                                      <Pencil className="h-2.5 w-2.5" />
+                                    </Button>
+                                    <Button size="sm" variant="ghost" className="h-5 w-5 p-0 text-destructive" onClick={() => handleDeleteTask(t.id)} disabled={deleteTask.isPending}>
+                                      <Trash2 className="h-2.5 w-2.5" />
+                                    </Button>
+                                  </div>
+                                )}
+                              </div>
+                              <ul className="list-disc list-inside text-muted-foreground">
+                                {t.requirements?.map((r, ri) => <li key={ri}>{r}</li>)}
+                              </ul>
+                            </>
+                          )}
+                        </div>
+                      ))}
+                      {(!ci.tasks || ci.tasks.length === 0) && !showAddTask && (
+                        <p className="text-xs text-muted-foreground text-center py-2">No tasks added yet.</p>
+                      )}
+                    </div>
                   </div>
                 ))
               ) : (
