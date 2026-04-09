@@ -424,6 +424,56 @@ export function useCreateCodeInterview() {
   });
 }
 
+export function useUpdateCodeInterview() {
+  const qc = useQueryClient();
+  const { toast } = useToast();
+  return useMutation({
+    mutationFn: ({ id, data }: { id: string; data: Partial<CreateCodeInterviewDto> }) => codeInterviewService.update(id, data),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['screenings'] }); qc.invalidateQueries({ queryKey: ['codeInterviews'] }); toast({ title: 'Code interview updated' }); },
+    onError: (e: Error) => toast({ title: 'Error', description: e.message, variant: 'destructive' }),
+  });
+}
+
+export function useDeleteCodeInterview() {
+  const qc = useQueryClient();
+  const { toast } = useToast();
+  return useMutation({
+    mutationFn: (id: string) => codeInterviewService.remove(id),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['screenings'] }); qc.invalidateQueries({ queryKey: ['codeInterviews'] }); toast({ title: 'Code interview deleted' }); },
+    onError: (e: Error) => toast({ title: 'Error', description: e.message, variant: 'destructive' }),
+  });
+}
+
+export function useCreateCodeInterviewTask() {
+  const qc = useQueryClient();
+  const { toast } = useToast();
+  return useMutation({
+    mutationFn: (data: { code_interview_id: string; requirements: string[]; points: number }) => codeInterviewService.createTask(data),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['screenings'] }); qc.invalidateQueries({ queryKey: ['codeInterviews'] }); toast({ title: 'Task created' }); },
+    onError: (e: Error) => toast({ title: 'Error', description: e.message, variant: 'destructive' }),
+  });
+}
+
+export function useUpdateCodeInterviewTask() {
+  const qc = useQueryClient();
+  const { toast } = useToast();
+  return useMutation({
+    mutationFn: ({ id, data }: { id: string; data: { requirements?: string[]; points?: number } }) => codeInterviewService.updateTask(id, data),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['screenings'] }); qc.invalidateQueries({ queryKey: ['codeInterviews'] }); toast({ title: 'Task updated' }); },
+    onError: (e: Error) => toast({ title: 'Error', description: e.message, variant: 'destructive' }),
+  });
+}
+
+export function useDeleteCodeInterviewTask() {
+  const qc = useQueryClient();
+  const { toast } = useToast();
+  return useMutation({
+    mutationFn: (id: string) => codeInterviewService.removeTask(id),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['screenings'] }); qc.invalidateQueries({ queryKey: ['codeInterviews'] }); toast({ title: 'Task deleted' }); },
+    onError: (e: Error) => toast({ title: 'Error', description: e.message, variant: 'destructive' }),
+  });
+}
+
 export function useApproveCodeAttempt() {
   const qc = useQueryClient();
   const { toast } = useToast();
