@@ -444,6 +444,16 @@ export function useDeleteCodeInterview() {
   });
 }
 
+export function useUpdateCodeInterviewStatus() {
+  const qc = useQueryClient();
+  const { toast } = useToast();
+  return useMutation({
+    mutationFn: ({ id, status }: { id: string; status: string }) => codeInterviewService.updateStatus(id, status),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['screenings'] }); qc.invalidateQueries({ queryKey: ['codeInterviews'] }); toast({ title: 'Status updated' }); },
+    onError: (e: Error) => toast({ title: 'Error', description: e.message, variant: 'destructive' }),
+  });
+}
+
 export function useCreateCodeInterviewTask() {
   const qc = useQueryClient();
   const { toast } = useToast();

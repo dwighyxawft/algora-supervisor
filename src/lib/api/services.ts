@@ -206,6 +206,7 @@ export const codeInterviewService = {
   updateTask: (id: string, data: any) => apiClient.patch<any>(CodingWorkspaceRoutes.updateTask(id), data),
   removeTask: (id: string) => apiClient.delete<DeleteResult>(CodingWorkspaceRoutes.removeTask(id)),
   createAttempt: (data: CreateCodeInterviewAttemptDto) => apiClient.post<CodeInterviewAttempt>(CodingWorkspaceRoutes.createAttempt(), data),
+  updateStatus: (id: string, status: string) => apiClient.patch<CodeInterview>(CodingWorkspaceRoutes.updateStatus(id), { status }),
 };
 
 // ==================== MENTOR COMPLAINTS ====================

@@ -4,6 +4,7 @@ import {
   useApproveQbotRetry, useRejectQbotRetry, useMentorWorkSamples, useCreateQbot,
   useCreateCodeInterview, useUpdateCodeInterview, useDeleteCodeInterview,
   useCreateCodeInterviewTask, useUpdateCodeInterviewTask, useDeleteCodeInterviewTask,
+  useUpdateCodeInterviewStatus,
   useUpdateScreening, useUpdateWorkSample, useDeleteScreening, useDeleteQbot,
 } from '@/hooks/use-api';
 import { useAuth } from '@/contexts/AuthContext';
@@ -218,6 +219,7 @@ function ScreeningDetailView({ screeningId }: { screeningId: string }) {
   const createTask = useCreateCodeInterviewTask();
   const updateTask = useUpdateCodeInterviewTask();
   const deleteTask = useDeleteCodeInterviewTask();
+  const updateCIStatus = useUpdateCodeInterviewStatus();
   const updateScreening = useUpdateScreening();
   const updateWorkSample = useUpdateWorkSample();
   const deleteScreening = useDeleteScreening();
@@ -1095,6 +1097,11 @@ function ScreeningDetailView({ screeningId }: { screeningId: string }) {
                               <Button size="sm" variant="destructive" className="h-7 text-xs gap-1" onClick={() => handleDeleteCI(ci.id)} disabled={deleteCodeInterviewMut.isPending}>
                                 <Trash2 className="h-3 w-3" /> Delete
                               </Button>
+                              {ci.status === 'PENDING' && ci.tasks && ci.tasks.length > 0 && (
+                                <Button size="sm" variant="outline" className="h-7 text-xs gap-1 border-green-500/30 text-green-400 hover:bg-green-500/10" onClick={() => updateCIStatus.mutate({ id: ci.id, status: 'READY' })} disabled={updateCIStatus.isPending}>
+                                  {updateCIStatus.isPending ? <Loader2 className="h-3 w-3 animate-spin" /> : <CheckCircle className="h-3 w-3" />} Mark Ready
+                                </Button>
+                              )}
                             </>
                           )}
                           {ci.startDateTime && ci.status !== 'COMPLETED' && (

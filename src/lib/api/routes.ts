@@ -139,6 +139,7 @@ export const CodingWorkspaceRoutes = {
   createAttempt:         () => url('coding-workspace/retry'),               // POST
   approveAttempt:        (id: string) => url(`coding-workspace/retry/${id}/approve`), // PATCH
   rejectAttempt:         (id: string) => url(`coding-workspace/retry/${id}/reject`),  // PATCH
+  updateStatus:          (id: string) => url(`coding-workspace/code-interview/${id}/status`), // PATCH
 } as const;
 
 // ==================== CONTACT COMPLAINT ====================
