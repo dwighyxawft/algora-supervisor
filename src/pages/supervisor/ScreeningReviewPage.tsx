@@ -4,6 +4,7 @@ import {
   useApproveQbotRetry, useRejectQbotRetry, useMentorWorkSamples, useCreateQbot,
   useCreateCodeInterview, useUpdateCodeInterview, useDeleteCodeInterview,
   useCreateCodeInterviewTask, useUpdateCodeInterviewTask, useDeleteCodeInterviewTask,
+  useUpdateCodeInterviewStatus,
   useUpdateScreening, useUpdateWorkSample, useDeleteScreening, useDeleteQbot,
 } from '@/hooks/use-api';
 import { useAuth } from '@/contexts/AuthContext';
