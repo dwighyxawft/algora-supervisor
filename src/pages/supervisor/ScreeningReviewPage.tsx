@@ -219,6 +219,7 @@ function ScreeningDetailView({ screeningId }: { screeningId: string }) {
   const createTask = useCreateCodeInterviewTask();
   const updateTask = useUpdateCodeInterviewTask();
   const deleteTask = useDeleteCodeInterviewTask();
+  const updateCIStatus = useUpdateCodeInterviewStatus();
   const updateScreening = useUpdateScreening();
   const updateWorkSample = useUpdateWorkSample();
   const deleteScreening = useDeleteScreening();
