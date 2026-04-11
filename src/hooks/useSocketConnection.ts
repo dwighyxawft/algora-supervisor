@@ -23,6 +23,8 @@ interface PeerIdEvent {
   userType: 'mentor' | 'supervisor';
 }
 
+const normalizeUserType = (value: string | undefined | null) => value?.toLowerCase() ?? '';
+
 export function useSocketConnection({ userId, userType, roomId, autoConnect = false }: UseSocketConnectionOptions) {
   const socketRef = useRef<Socket | null>(null);
   const [state, setState] = useState<SocketState>({
@@ -33,6 +35,7 @@ export function useSocketConnection({ userId, userType, roomId, autoConnect = fa
     connectionStatus: 'Disconnected',
   });
   const [remotePeerId, setRemotePeerId] = useState<string | null>(null);
+  const roomUserType = userType.toUpperCase();
 
   const connect = useCallback(() => {
     if (socketRef.current?.connected) return;
@@ -61,7 +64,7 @@ export function useSocketConnection({ userId, userType, roomId, autoConnect = fa
               // Proceed to join room even if authenticated event wasn't received
               socketRef.current?.emit('join-code-interview-room', {
                 userId,
-                userType: 'SUPERVISOR',
+                userType: roomUserType,
                 roomId,
               });
               return { ...s, isAuthenticated: true, connectionStatus: 'Connected' };
@@ -77,27 +80,27 @@ export function useSocketConnection({ userId, userType, roomId, autoConnect = fa
       // Step 2: Join room
       socket.emit('join-code-interview-room', {
         userId,
-        userType: 'SUPERVISOR',
+        userType: roomUserType,
         roomId,
       });
       setState(s => ({ ...s, connectionStatus: 'Connected' }));
     });
 
     socket.on('user-joined', (data: { userId: string; userType: string }) => {
-      if (data.userType === 'MENTOR') {
+      if (normalizeUserType(data.userType) === 'mentor') {
         setState(s => ({ ...s, mentorJoined: true, connectionStatus: 'Mentor connected' }));
       }
     });
 
     socket.on('peer-id', (data: PeerIdEvent) => {
-      if (data.userType === 'mentor') {
+      if (normalizeUserType(data.userType) === 'mentor') {
         setRemotePeerId(data.peerId);
         setState(s => ({ ...s, connectionStatus: 'Receiving mentor streams...' }));
       }
     });
 
     socket.on('user-left', (data: { userId: string; userType: string }) => {
-      if (data.userType === 'MENTOR') {
+      if (normalizeUserType(data.userType) === 'mentor') {
         setState(s => ({ ...s, mentorJoined: false, connectionStatus: 'Waiting for mentor...' }));
         setRemotePeerId(null);
       }
@@ -116,16 +119,16 @@ export function useSocketConnection({ userId, userType, roomId, autoConnect = fa
     socketRef.current?.emit('send-peer-id-to-code-interview-room', {
       peerId,
       userId,
-      userType: 'SUPERVISOR',
+      userType,
       roomId,
     });
-  }, [userId, roomId]);
+  }, [userId, userType, roomId]);
 
   const disconnect = useCallback(() => {
     if (socketRef.current) {
       socketRef.current.emit('leave-code-interview-room', {
         userId,
-        userType: 'SUPERVISOR',
+        userType: roomUserType,
         roomId,
       });
       socketRef.current.emit('unauthenticate', { userId, userType });
@@ -134,7 +137,7 @@ export function useSocketConnection({ userId, userType, roomId, autoConnect = fa
     }
     setState({ isConnected: false, isAuthenticated: false, error: null, mentorJoined: false, connectionStatus: 'Disconnected' });
     setRemotePeerId(null);
-  }, [userId, userType, roomId]);
+  }, [userId, userType, roomId, roomUserType]);
 
   useEffect(() => {
     if (autoConnect) connect();
