@@ -52,7 +52,7 @@ export function usePeerConnection(localStream: MediaStream | null) {
     // - If mentor calls first (no outgoing call), first incoming = camera, second incoming = screen
     peer.on('call', (call) => {
       // Answer with supervisor's camera stream
-      call.answer(localStream || undefined);
+      call.answer(localStreamRef.current || undefined);
 
       call.on('stream', (remoteStream) => {
         // Use metadata if available
@@ -92,14 +92,14 @@ export function usePeerConnection(localStream: MediaStream | null) {
     peer.on('error', (err) => {
       setState(s => ({ ...s, error: `Peer error: ${err.message}` }));
     });
-  }, [localStream]);
+  }, []);
 
   // Call mentor — the remote stream back from this call is mentor's camera
   const callPeer = useCallback((remotePeerId: string) => {
-    if (!peerRef.current || !localStream) return;
+    if (!peerRef.current || !localStreamRef.current) return;
     outgoingCallPlacedRef.current = true;
 
-    const call = peerRef.current.call(remotePeerId, localStream, {
+    const call = peerRef.current.call(remotePeerId, localStreamRef.current, {
       metadata: { type: 'camera' },
     });
     if (!call) return;
@@ -114,7 +114,7 @@ export function usePeerConnection(localStream: MediaStream | null) {
     });
 
     connectionsRef.current.push(call);
-  }, [localStream]);
+  }, []);
 
   const destroyPeer = useCallback(() => {
     connectionsRef.current.forEach(c => c.close());
