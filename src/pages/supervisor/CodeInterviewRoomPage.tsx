@@ -104,15 +104,17 @@ export default function CodeInterviewRoomPage() {
     }
   }, [peer.peerId, joined, socket.sharePeerId]);
 
-  // SCENARIO 2: When we receive mentor's peerId, call them
+  // SCENARIO 2: When we receive mentor's peerId, call them (only when stream is ready)
   useEffect(() => {
-    if (socket.remotePeerId && peer.isReady) {
+    if (socket.remotePeerId && peer.isReady && localStream) {
       peer.callPeer(socket.remotePeerId);
     }
-  }, [socket.remotePeerId, peer.isReady, peer.callPeer]);
+  }, [socket.remotePeerId, peer.isReady, localStream, peer.callPeer]);
 
   const handleJoinRoom = useCallback(async () => {
-    await startCamera();
+    const stream = await startCamera();
+    if (!stream) return; // Camera failed, don't proceed
+    // Now that we have the stream, connect socket and create peer
     socket.connect();
     peer.createPeer();
     setJoined(true);
