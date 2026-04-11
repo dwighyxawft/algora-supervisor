@@ -15,11 +15,16 @@ interface StreamSet {
 export function usePeerConnection(localStream: MediaStream | null) {
   const peerRef = useRef<Peer | null>(null);
   const connectionsRef = useRef<MediaConnection[]>([]);
+  const localStreamRef = useRef<MediaStream | null>(localStream);
   const [state, setState] = useState<PeerState>({ peerId: null, isReady: false, error: null });
   const [remoteStreams, setRemoteStreams] = useState<StreamSet>({ mentorCamera: null, mentorScreen: null });
-  // Track whether we already placed an outgoing call so we know incoming = screen
   const outgoingCallPlacedRef = useRef(false);
   const incomingCallCountRef = useRef(0);
+
+  // Keep ref in sync so closures always have latest stream
+  useEffect(() => {
+    localStreamRef.current = localStream;
+  }, [localStream]);
 
   const createPeer = useCallback(() => {
     if (peerRef.current) return;
