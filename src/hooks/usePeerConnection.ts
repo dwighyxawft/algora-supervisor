@@ -57,26 +57,40 @@ export function usePeerConnection(localStream: MediaStream | null) {
       call.on('stream', (remoteStream) => {
         // Use metadata if available
         if (call.metadata?.type === 'screen') {
+          console.log('[Peer] Incoming stream with metadata: screen');
           setRemoteStreams(prev => ({ ...prev, mentorScreen: remoteStream }));
           return;
         }
         if (call.metadata?.type === 'camera') {
+          console.log('[Peer] Incoming stream with metadata: camera');
           setRemoteStreams(prev => ({ ...prev, mentorCamera: remoteStream }));
           return;
         }
 
-        // Fallback logic
+        // No metadata — count ALL incoming calls to distinguish
+        incomingCallCountRef.current++;
+        const callNum = incomingCallCountRef.current;
+        console.log('[Peer] Incoming stream #' + callNum + ', outgoingPlaced=' + outgoingCallPlacedRef.current);
+
         if (outgoingCallPlacedRef.current) {
-          // We already called mentor (got camera back), so this incoming call = screen share
-          setRemoteStreams(prev => ({ ...prev, mentorScreen: remoteStream }));
-        } else {
-          // Mentor called us first
-          incomingCallCountRef.current++;
-          if (incomingCallCountRef.current === 1) {
-            // First incoming = camera
+          // We already called mentor and got camera from outgoing call response.
+          // Mentor calls us back twice: 1st = camera (duplicate, ignore), 2nd = screen share
+          if (callNum === 1) {
+            // First incoming is mentor's camera again — we already have it, but set it anyway
+            console.log('[Peer] Incoming #1 after outgoing = camera (duplicate, updating)');
             setRemoteStreams(prev => ({ ...prev, mentorCamera: remoteStream }));
           } else {
             // Second incoming = screen share
+            console.log('[Peer] Incoming #2 after outgoing = screen share');
+            setRemoteStreams(prev => ({ ...prev, mentorScreen: remoteStream }));
+          }
+        } else {
+          // Mentor called us first (no outgoing call yet)
+          if (callNum === 1) {
+            console.log('[Peer] Incoming #1 (no outgoing) = camera');
+            setRemoteStreams(prev => ({ ...prev, mentorCamera: remoteStream }));
+          } else {
+            console.log('[Peer] Incoming #2 (no outgoing) = screen share');
             setRemoteStreams(prev => ({ ...prev, mentorScreen: remoteStream }));
           }
         }
