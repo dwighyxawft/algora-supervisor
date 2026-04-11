@@ -15,11 +15,16 @@ interface StreamSet {
 export function usePeerConnection(localStream: MediaStream | null) {
   const peerRef = useRef<Peer | null>(null);
   const connectionsRef = useRef<MediaConnection[]>([]);
+  const localStreamRef = useRef<MediaStream | null>(localStream);
   const [state, setState] = useState<PeerState>({ peerId: null, isReady: false, error: null });
   const [remoteStreams, setRemoteStreams] = useState<StreamSet>({ mentorCamera: null, mentorScreen: null });
-  // Track whether we already placed an outgoing call so we know incoming = screen
   const outgoingCallPlacedRef = useRef(false);
   const incomingCallCountRef = useRef(0);
+
+  // Keep ref in sync so closures always have latest stream
+  useEffect(() => {
+    localStreamRef.current = localStream;
+  }, [localStream]);
 
   const createPeer = useCallback(() => {
     if (peerRef.current) return;
@@ -47,7 +52,7 @@ export function usePeerConnection(localStream: MediaStream | null) {
     // - If mentor calls first (no outgoing call), first incoming = camera, second incoming = screen
     peer.on('call', (call) => {
       // Answer with supervisor's camera stream
-      call.answer(localStream || undefined);
+      call.answer(localStreamRef.current || undefined);
 
       call.on('stream', (remoteStream) => {
         // Use metadata if available
@@ -87,14 +92,14 @@ export function usePeerConnection(localStream: MediaStream | null) {
     peer.on('error', (err) => {
       setState(s => ({ ...s, error: `Peer error: ${err.message}` }));
     });
-  }, [localStream]);
+  }, []);
 
   // Call mentor — the remote stream back from this call is mentor's camera
   const callPeer = useCallback((remotePeerId: string) => {
-    if (!peerRef.current || !localStream) return;
+    if (!peerRef.current || !localStreamRef.current) return;
     outgoingCallPlacedRef.current = true;
 
-    const call = peerRef.current.call(remotePeerId, localStream, {
+    const call = peerRef.current.call(remotePeerId, localStreamRef.current, {
       metadata: { type: 'camera' },
     });
     if (!call) return;
@@ -109,7 +114,7 @@ export function usePeerConnection(localStream: MediaStream | null) {
     });
 
     connectionsRef.current.push(call);
-  }, [localStream]);
+  }, []);
 
   const destroyPeer = useCallback(() => {
     connectionsRef.current.forEach(c => c.close());
