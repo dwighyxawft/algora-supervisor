@@ -112,7 +112,9 @@ export default function CodeInterviewRoomPage() {
   }, [socket.remotePeerId, peer.isReady, peer.callPeer]);
 
   const handleJoinRoom = useCallback(async () => {
-    await startCamera();
+    const stream = await startCamera();
+    if (!stream) return; // Camera failed, don't proceed
+    // Now that we have the stream, connect socket and create peer
     socket.connect();
     peer.createPeer();
     setJoined(true);
